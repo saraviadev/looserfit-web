@@ -151,7 +151,7 @@ export default function Checkout() {
               </div>
 
               <p style={{ margin: '0.6rem 0', color: '#333', fontSize: '0.9rem', lineHeight: '1.35' }}>
-                Costo de envío: <strong>$6.500</strong> (sucursal) / <strong>$9.500</strong> (domicilio).
+                Costo de envío: <strong>$7.500</strong> (sucursal) / <strong>$11.000</strong> (domicilio).
               </p>
               <p style={{ margin: '0 0 1rem', fontSize: '0.85rem', color: '#666' }}>
                 Si no conocés la sucursal exacta, podés elegir una en el sitio oficial de Correo Argentino:
