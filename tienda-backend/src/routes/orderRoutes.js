@@ -3,9 +3,10 @@ const router = express.Router();
 const { upload } = require('../config/storage');
 const orderController = require('../controllers/orderController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
+const { detectBrand } = require('../middleware/brandMiddleware');
 
 // --- CREAR UN NUEVO PEDIDO (Soporta invitados) ---
-router.post('/create', orderController.createOrder);
+router.post('/create', detectBrand, orderController.createOrder);
 
 // --- VER MIS PEDIDOS ---
 router.get('/mine', protect, orderController.getOrdersMine);

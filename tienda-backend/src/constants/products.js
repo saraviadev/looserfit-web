@@ -14,7 +14,7 @@ const SIZES_BY_CATEGORY = {
     '43/43.5', 
     '+44'
   ],
-  'Accesorios': ['Talle Único']
+  'Accesorios': ['Talle Único', '46 ARG', '48 ARG', '50 ARG', '52 ARG']
 };
 
 module.exports = { SIZES_BY_CATEGORY };

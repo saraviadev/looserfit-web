@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { useAuth } from '../../context/AuthContext'
-import { crearPedido, crearPreferenciaPago } from '../../services/api'
+import { crearPedidoConBrand, crearPreferenciaPago } from '../../services/api'
 import './Checkout.css'
 
 const PROVINCIAS = [
@@ -105,7 +105,7 @@ export default function Checkout() {
 
     try {
       setLoading(true)
-      const resp = await crearPedido(pedidoData)
+      const resp = await crearPedidoConBrand(pedidoData)
       
       // Creamos la preferencia de Mercado Pago
       const preference = await crearPreferenciaPago(resp.pedido._id)

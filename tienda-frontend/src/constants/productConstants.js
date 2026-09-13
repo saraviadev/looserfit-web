@@ -14,6 +14,6 @@ export const SIZES_BY_CATEGORY = {
     '43/43.5', 
     '+44'
   ],
-  'Accesorios': ['Talle Único'],
+  'Accesorios': ['Talle Único', '46 ARG', '48 ARG', '50 ARG', '52 ARG'],
   'Sport / Deportivo': ['S', 'M', 'L', 'XL', 'XXL', '3XL']
 };

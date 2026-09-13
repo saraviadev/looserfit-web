@@ -64,28 +64,7 @@ export async function getProductoById(id) {
   return res.json()
 }
 
-// --- Crear pedido ---
-export async function crearPedido(pedidoData) {
-  const res = await fetch(`${BASE_URL}/orders/create`, {
-    method:  'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      ...getAuthHeaders()
-    },
-    body:    JSON.stringify(pedidoData)
-  })
-  if (!res.ok) {
-    let mensaje = 'Error al crear el pedido'
-    try {
-      const data = await res.json()
-      mensaje = data.mensaje || data.error || mensaje
-    } catch {
-      // dejamos mensaje por defecto
-    }
-    throw new Error(mensaje)
-  }
-  return res.json()
-}
+
 
 export async function getPedidos() {
   const res = await fetch(`${BASE_URL}/orders/all`, {
