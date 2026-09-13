@@ -67,7 +67,7 @@ const createOrder = async (orderData) => {
         nextNum++;
         orderNumber = `#${String(nextNum).padStart(3, '0')}`;
     }
-    const shippingCost = tipoEnvio === 'domicilio' ? 9500 : 6500;
+    const shippingCost = tipoEnvio === 'domicilio' ? 9500 : 7500;
     const totalFinal = totalCalculado + shippingCost;
     const trackingToken = crypto.randomBytes(16).toString('hex');
 
