@@ -18,7 +18,7 @@ export default function Checkout() {
   const { user } = useAuth()
   const { items, subtotal, clearCart } = useCart()
   const [tipoEnvio, setTipoEnvio] = useState('sucursal')
-  const shippingCost = tipoEnvio === 'domicilio' ? 9500 : 7500
+  const shippingCost = tipoEnvio === 'domicilio' ? 11000 : 7500
   const totalWithShipping = subtotal + shippingCost
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
