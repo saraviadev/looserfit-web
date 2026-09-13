@@ -102,7 +102,11 @@ export async function crearPreferenciaPago(orderId) {
 }
 
 export async function getPedidoById(id) {
-  const res = await fetch(`${BASE_URL}/orders/${id}`)
+  const res = await fetch(`${BASE_URL}/orders/${id}`, {
+    headers: {
+      ...getAuthHeaders()
+    }
+  })
   if (!res.ok) throw new Error('Pedido no encontrado')
   return res.json()
 }

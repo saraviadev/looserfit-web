@@ -14,11 +14,11 @@ router.get('/mine', protect, orderController.getOrdersMine);
 // --- VER TODOS LOS PEDIDOS (Solo Admin) ---
 router.get('/all', protect, adminOnly, orderController.getAllOrders);
 
-// --- VER UN PEDIDO POR ID ---
-router.get('/:id', orderController.getOrderById);
-
 // --- SEGUIMIENTO PÚBLICO (Sin Login) ---
 router.get('/track/:token', orderController.getOrderByToken);
+
+// --- VER UN PEDIDO POR ID ---
+router.get('/:id', orderController.getOrderById);
 
 // --- CAMBIAR ESTADO DEL PEDIDO (Solo Admin) ---
 router.patch('/:id/estado', protect, adminOnly, orderController.updateStatus);

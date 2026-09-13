@@ -55,7 +55,7 @@ router.post('/create-preference', async (req, res) => {
         }
 
         const preference = new Preference(client);
-        const frontendUrl = process.env.FRONTEND_URL || 'https://looserfit-app-final.loca.lt';
+        const frontendUrl = process.env.FRONTEND_URL || 'https://www.looserfit.com';
         const body = {
             items,
             back_urls: {
