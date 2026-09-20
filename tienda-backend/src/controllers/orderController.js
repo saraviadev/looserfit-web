@@ -10,7 +10,7 @@ const createOrder = async (req, res) => {
             datosEnvio, 
             total, 
             tipoEnvio, 
-            usuario: req.user ? req.user._id : null,
+            usuario: req.user ? (req.user.id || req.user._id) : null,
             comprobante: null,
             brand: req.brandId  // Multi-marca: marca de la tienda donde se generó el pedido
         };
@@ -35,7 +35,8 @@ const getAllOrders = async (req, res) => {
 
 const getOrdersMine = async (req, res) => {
     try {
-        const orders = await orderService.getOrdersByUser(req.user._id);
+        const userId = req.user ? (req.user.id || req.user._id) : null;
+        const orders = await orderService.getOrdersByUser(userId);
         res.json(orders);
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al obtener tus pedidos', error: error.message });
@@ -66,14 +67,17 @@ const getOrderById = async (req, res) => {
                 return res.status(401).json({ mensaje: 'Acceso no autorizado a este pedido' });
             }
             // Requiere que sea el dueño del pedido o un admin
-            if (tokenUser._id !== order.usuario.toString() && !tokenUser.isAdmin) {
+            const isOwner = String(tokenUser.id || tokenUser._id) === String(order.usuario);
+            if (!isOwner && !tokenUser.isAdmin) {
                 return res.status(403).json({ mensaje: 'No tenés permiso para ver este pedido' });
             }
         } else {
-            // Si el pedido es de invitado (usuario === null)
-            // Permitimos acceso porque se necesita para subir comprobante, 
-            // pero si hay un usuario logueado intentando ver pedidos de invitado que no son suyos...
-            // en este caso el ObjectId actúa como token de acceso público temporal.
+            // Si el pedido es de invitado (usuario === null / undefined)
+            // Si hay un usuario logueado que no es admin, denegar acceso a pedidos ajenos
+            if (tokenUser && !tokenUser.isAdmin) {
+                return res.status(403).json({ mensaje: 'No tenés permiso para ver este pedido' });
+            }
+            // Si es invitado sin token, permitimos acceso para ver el resumen y subir comprobante
         }
 
         res.json(order);
