@@ -73,11 +73,8 @@ const getOrderById = async (req, res) => {
             }
         } else {
             // Si el pedido es de invitado (usuario === null / undefined)
-            // Si hay un usuario logueado que no es admin, denegar acceso a pedidos ajenos
-            if (tokenUser && !tokenUser.isAdmin) {
-                return res.status(403).json({ mensaje: 'No tenés permiso para ver este pedido' });
-            }
-            // Si es invitado sin token, permitimos acceso para ver el resumen y subir comprobante
+            // Permitimos acceso porque se necesita para ver el resumen y subir comprobante,
+            // tanto para invitados sin token como para usuarios logueados que abren pedidos huérfanos.
         }
 
         res.json(order);

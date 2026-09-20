@@ -108,13 +108,13 @@ describe('Fase 2.1 — H11: Control de Acceso y Autorización en Pedidos (getOrd
     expect(res.body.mensaje).toMatch(/No tenés permiso/);
   });
 
-  test('2b. Tercero autenticado recibe 403 al intentar consultar un pedido de invitado', async () => {
+  test('2b. Usuario logueado no admin puede consultar pedido sin usuario (compatibilidad con pedidos de invitado y huérfanos sin 403)', async () => {
     const res = await request(app)
       .get(`/api/orders/${guestOrder._id}`)
       .set('Authorization', `Bearer ${otherToken}`);
 
-    expect(res.status).toBe(403);
-    expect(res.body.mensaje).toMatch(/No tenés permiso/);
+    expect(res.status).toBe(200);
+    expect(res.body._id).toBe(guestOrder._id.toString());
   });
 
   test('3. Admin accede: Administrador puede consultar cualquier pedido (registrado o invitado)', async () => {
