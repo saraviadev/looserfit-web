@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { BASE_URL, getAuthHeaders, getCategories } from '../../services/api'
+import { BASE_URL, getAuthHeaders, getCategories, getProductoById } from '../../services/api'
 import { SIZES_BY_CATEGORY } from '../../constants/productConstants'
 import './Admin.css'
 
@@ -51,8 +51,7 @@ export default function AdminNuevoProducto() {
   // Si es edición, cargar datos existentes
   useEffect(() => {
     if (!esEdicion) return
-    fetch(`${BASE_URL}/products/${id}`)
-      .then(r => r.json())
+    getProductoById(id)
       .then(data => {
         setForm({
           nombre:      data.nombre      || '',

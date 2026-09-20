@@ -30,6 +30,7 @@ import MisPedidos from './pages/MisPedidos/MisPedidos'
 import TrackingPedido from './pages/Tracking/TrackingPedido'
 import NotFound from './pages/NotFound/NotFound'
 import PendingReceiptAlert from './components/PendingReceiptAlert/PendingReceiptAlert'
+import { getHomeContent } from './services/api'
 
 // ─── Pantalla de Coming Soon ───────────────────────────────────────────────
 
@@ -125,8 +126,7 @@ function BrandRoutes({ pathPrefix }) {
   useEffect(() => {
     if (brandLoading) return
     const slug = brand?.slug || 'fit'
-    fetch(`/api/home?brand=${slug}`)
-      .then(r => r.json())
+    getHomeContent(slug)
       .then(data => setHomeContent(data))
       .catch(() => setHomeContent(null))
       .finally(() => setHomeLoading(false))
@@ -142,8 +142,7 @@ function BrandRoutes({ pathPrefix }) {
       const launchDate = new Date(comingSoon?.launchDate).getTime()
       if (launchDate <= Date.now()) {
         const slug = brand?.slug || 'fit'
-        fetch(`/api/home?brand=${slug}`)
-          .then(r => r.json())
+        getHomeContent(slug)
           .then(data => setHomeContent(data))
           .catch(() => setHomeContent(null))
       }

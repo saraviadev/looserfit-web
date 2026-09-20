@@ -58,8 +58,9 @@ export async function getProductos(filtros = {}, brandSlug) {
 }
 
 // --- Traer un producto por ID ---
-export async function getProductoById(id) {
-  const res = await fetch(`${BASE_URL}/products/${id}`)
+export async function getProductoById(id, brandSlug) {
+  const slug = brandSlug || getBrandSlug()
+  const res = await fetch(`${BASE_URL}/products/${id}?brand=${slug}`)
   if (!res.ok) throw new Error('Producto no encontrado')
   return res.json()
 }
