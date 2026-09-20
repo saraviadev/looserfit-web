@@ -56,23 +56,29 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
 
 // --- Conexión MongoDB ---
-const linkSeguro = process.env.MONGO_URI;
+if (process.env.NODE_ENV !== 'test') {
+    const linkSeguro = process.env.MONGO_URI;
 
-if (!linkSeguro) {
-    console.error('❌ MONGO_URI no configurada en .env');
-    process.exit(1);
+    if (!linkSeguro) {
+        console.error('❌ MONGO_URI no configurada en .env');
+        process.exit(1);
+    }
+
+    mongoose.connect(linkSeguro)
+        .then(() => console.log('✅ Conectado a MongoDB Atlas'))
+        .catch((err) => console.error('❌ Error de conexión:', err));
 }
-
-mongoose.connect(linkSeguro)
-    .then(() => console.log('✅ Conectado a MongoDB Atlas'))
-    .catch((err) => console.error('❌ Error de conexión:', err));
 // -------------------------------------------------------
 
 app.get('/', (req, res) => {
     res.send('Servidor de Losserfit funcionando 🚀');
 });
 
-const PORT = 3000;
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor en http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+if (process.env.NODE_ENV !== 'test') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Servidor en http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;

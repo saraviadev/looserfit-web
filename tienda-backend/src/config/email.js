@@ -26,14 +26,16 @@ const transporter = nodemailer.createTransport({
     socketTimeout: 20000
 });
 
-// Verificar al arrancar — no bloquea si falla
-transporter.verify((error) => {
-    if (error) {
-        console.warn('⚠️  Email no disponible:', error.message);
-    } else {
-        console.log('✅ Servidor de email listo');
-    }
-});
+// Verificar al arrancar — no bloquea si falla (ignorado en tests)
+if (process.env.NODE_ENV !== 'test') {
+    transporter.verify((error) => {
+        if (error) {
+            console.warn('⚠️  Email no disponible:', error.message);
+        } else {
+            console.log('✅ Servidor de email listo');
+        }
+    });
+}
 
 // ── Helpers internos ──
 
