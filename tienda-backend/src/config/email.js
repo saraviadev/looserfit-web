@@ -108,12 +108,12 @@ async function enviarEmailPedido(datosEnvio, pedido) {
                  ${pedido.tipoEnvio === 'sucursal' ? 'Retiro en sucursal' : 'Envío a domicilio'}
                </p>
                <p style="margin:0 0 6px"><strong>Provincia:</strong> ${datosEnvio.provincia}, ${datosEnvio.localidad}</p>
-                 <p style="margin:0">
-                   <a href="${process.env.SITE_FRONTEND_URL || 'http://localhost:5173'}/seguimiento/${pedido.trackingToken}" style="color:#0d0d0d;font-weight:bold">
-                      Ver estado de mi pedido
-                   </a>
-                 </p>
-             </div>
+                <p style="margin:0">
+                  <a href="${(process.env.SITE_FRONTEND_URL || process.env.FRONTEND_URL || 'https://www.looserfit.com').replace(/\/$/, '')}/seguimiento/${pedido.trackingToken}" style="color:#0d0d0d;font-weight:bold">
+                     Ver estado de mi pedido
+                  </a>
+                </p>
+              </div>
 
               <p style="margin-top:20px;color:#3d3d3d">
                 Cualquier consulta escribinos por 
