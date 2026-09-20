@@ -1,43 +1,29 @@
 const HomeContent = require('../models/HomeContent');
 const User = require('../models/User');
-const nodemailer = require('nodemailer');
+const { sendEmail, wrapHTML } = require('../config/email');
 const { deleteFromCloudinary } = require('../utils/cloudinaryUtils');
-
-const createTransport = () => {
-    return nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-        }
-    });
-}
 
 const sendLaunchNotification = async (message, subtitle, emailMessage) => {
     try {
-        if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) return;
         const users = await User.find({}, 'email');
         const emails = users.map(u => u.email).filter(Boolean);
         if (!emails.length) return;
 
-        const transporter = createTransport();
-        const mailOptions = {
-            from: `"Looser Fit" <${process.env.EMAIL_USER}>`,
-            to: emails,
+        await sendEmail({
+            bcc: emails,
             subject: 'Looser Fit ya está disponible',
-            html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px;">
-                    <h1 style="color: #111;">Looser Fit está de nuevo en vivo</h1>
-                    <p style="font-size: 16px; line-height: 1.6; color: #333;">${emailMessage || message || 'La tienda está disponible nuevamente.'}</p>
-                    ${subtitle ? `<p style="font-size: 15px; line-height: 1.6; color: #555;">${subtitle}</p>` : ''}
-                    <p style="font-size: 16px; line-height: 1.6; color: #333;">Ingresá ahora a ver los nuevos productos.</p>
-                </div>
-            `
-        };
-
-        await transporter.sendMail(mailOptions);
+            html: wrapHTML(
+                'Looser Fit está de nuevo en vivo',
+                `<div style="font-size: 16px; line-height: 1.6; color: #333;">
+                    <p>${emailMessage || message || 'La tienda está disponible nuevamente.'}</p>
+                    ${subtitle ? `<p style="font-size: 15px; color: #555;">${subtitle}</p>` : ''}
+                    <p>Ingresá ahora a ver los nuevos productos.</p>
+                </div>`
+            )
+        });
+        console.log(`✅ Notificación de lanzamiento enviada a ${emails.length} usuarios.`);
     } catch (err) {
-        console.error('Error sending launch notification:', err);
+        console.error('❌ [Email Error] tipo: Lanzamiento | error:', err.message);
     }
 }
 

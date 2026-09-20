@@ -29,13 +29,21 @@ El proyecto sigue el patrón **Route - Controller - Service**:
 
 1. Clonar el repositorio.
 2. Instalar dependencias: `npm install`.
-3. Configurar el archivo `.env` con las siguientes variables:
-   - `MONGO_URI`
-   - `JWT_SECRET`
-   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
-   - `EMAIL_USER`, `EMAIL_PASS` (Gmail App Pass)
-   - `MP_ACCESS_TOKEN`
-4. Iniciar en modo desarrollo: `npm run dev`.
+3. Configurar el archivo `.env` basado en `.env.example`:
+   - `MONGO_URI`: Conexión de MongoDB Atlas.
+   - `JWT_SECRET`: Llave secreta para tokens de autenticación.
+   - `RESEND_API_KEY`: API Key de Resend (recomendado en producción para evitar bloqueos SMTP en Render).
+   - `EMAIL_FROM`: Remitente verificado en Resend (ej: `Looserfit <pedidos@looserfit.com>`).
+   - `EMAIL_USER`, `EMAIL_PASS`: Credenciales de Gmail (utilizadas como fallback SMTP en entorno local).
+   - `SITE_FRONTEND_URL` / `FRONTEND_URL`: URL pública de la tienda (`https://www.looserfit.com`).
+   - `MP_PUBLIC_KEY`, `MP_ACCESS_TOKEN`: Credenciales de Mercado Pago.
+   - `IMAGEKIT_PUBLIC_KEY`, `IMAGEKIT_PRIVATE_KEY`, `IMAGEKIT_URL_ENDPOINT`: Credenciales de ImageKit.
+4. Ejecutar tests automatizados: `npm test`.
+5. Probar envío de correos manualmente:
+   ```bash
+   TEST_EMAIL_TO="tu_correo@ejemplo.com" node scripts/send-test-emails.js
+   ```
+6. Iniciar en modo desarrollo: `npm run dev`.
 
 ## 📖 Endpoints Principales
 - `POST /api/auth/login`: Inicio de sesión.

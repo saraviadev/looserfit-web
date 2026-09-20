@@ -1,5 +1,5 @@
 const User = require('../models/User');
-const nodemailer = require('nodemailer');
+const { sendEmail, wrapHTML } = require('../config/email');
 
 const enviarNewsletter = async (asunto, contenido) => {
     const users = await User.find({}, 'email');
@@ -7,29 +7,22 @@ const enviarNewsletter = async (asunto, contenido) => {
 
     if (emails.length === 0) return { mensaje: 'No hay usuarios suscritos' };
 
-    const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
-        }
-    });
-
-    const mailOptions = {
-        from: `"Looser Fit" <${process.env.EMAIL_USER}>`,
-        to: emails,
-        subject: asunto,
-        html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px;">
-                <div style="font-size: 16px; line-height: 1.6; color: #333;">
+    try {
+        await sendEmail({
+            bcc: emails,
+            subject: asunto,
+            html: wrapHTML(
+                asunto,
+                `<div style="font-size: 16px; line-height: 1.6; color: #333;">
                     ${contenido.replace(/\n/g, '<br>')}
-                </div>
-            </div>
-        `
-    };
-
-    await transporter.sendMail(mailOptions);
-    return { mensaje: `Noticia enviada correctamente a ${emails.length} usuarios.` };
+                </div>`
+            )
+        });
+        return { mensaje: `Noticia enviada correctamente a ${emails.length} usuarios.` };
+    } catch (err) {
+        console.error('❌ [Email Error] tipo: Newsletter | error:', err.message);
+        throw err;
+    }
 };
 
 module.exports = {

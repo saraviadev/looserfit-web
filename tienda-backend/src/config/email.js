@@ -20,7 +20,6 @@ const transporter = nodemailer.createTransport({
         rejectUnauthorized: false,
         minVersion: 'TLSv1.2'
     },
-    // Timeouts generosos para Render (cold starts)
     connectionTimeout: 15000,
     greetingTimeout: 8000,
     socketTimeout: 20000
@@ -30,16 +29,74 @@ const transporter = nodemailer.createTransport({
 if (process.env.NODE_ENV !== 'test') {
     transporter.verify((error) => {
         if (error) {
-            console.warn('⚠️  Email no disponible:', error.message);
+            console.warn('⚠️  Email SMTP no disponible:', error.message);
         } else {
-            console.log('✅ Servidor de email listo');
+            console.log('✅ Servidor de email SMTP listo');
         }
     });
 }
 
+// ── Motor unificado de envío: Resend API HTTP con fallback a Nodemailer SMTP ──
+async function sendEmail({ to, bcc, subject, html }) {
+    const defaultFrom = `"${process.env.SITE_NAME || 'Store'}" <${process.env.EMAIL_USER || 'looserfit2004@gmail.com'}>`;
+    const from = process.env.EMAIL_FROM || defaultFrom;
+
+    // 1. Si existe API KEY de Resend, enviamos vía HTTP (puerto 443, sin bloqueos de puerto en Render)
+    if (process.env.RESEND_API_KEY) {
+        let recipientList = [];
+        if (to) {
+            recipientList = Array.isArray(to) ? to : [to];
+        } else if (process.env.EMAIL_USER) {
+            recipientList = [process.env.EMAIL_USER];
+        } else {
+            recipientList = ['looserfit2004@gmail.com'];
+        }
+
+        const payload = {
+            from,
+            to: recipientList,
+            subject,
+            html
+        };
+
+        if (bcc) {
+            payload.bcc = Array.isArray(bcc) ? bcc : [bcc];
+        }
+
+        const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!res.ok) {
+            const errText = await res.text();
+            throw new Error(`Resend HTTP ${res.status}: ${errText}`);
+        }
+
+        const data = await res.json();
+        return { success: true, messageId: data.id, provider: 'resend' };
+    }
+
+    // 2. Fallback: Nodemailer SMTP (para pruebas locales cuando no hay RESEND_API_KEY)
+    const mailOptions = {
+        from,
+        to: to || (bcc ? (process.env.EMAIL_USER || 'looserfit2004@gmail.com') : undefined),
+        subject,
+        html
+    };
+    if (bcc) mailOptions.bcc = bcc;
+
+    const info = await transporter.sendMail(mailOptions);
+    return { success: true, messageId: info?.messageId || 'mock-id', provider: 'smtp' };
+}
+
 // ── Helpers internos ──
 
-function productosHTML(productos) {
+function productosHTML(productos = []) {
     return productos
         .map(p => `
             <tr>
@@ -81,9 +138,14 @@ function wrapHTML(titulo, contenido) {
 
 // ── Email al cliente cuando confirma el pedido ──
 async function enviarEmailPedido(datosEnvio, pedido) {
-    // removed early return to allow fallback
-
     try {
+        const trackingBaseUrl = (process.env.SITE_FRONTEND_URL || process.env.FRONTEND_URL || 'https://www.looserfit.com').replace(/\/$/, '');
+        const trackingLink = `${trackingBaseUrl}/seguimiento/${pedido.trackingToken}`;
+
+        const direccionDetalle = pedido.tipoEnvio === 'sucursal'
+            ? `<p style="margin:0 0 6px"><strong>Sucursal:</strong> ${datosEnvio.direccionSucursal || 'A convenir'}</p>`
+            : `<p style="margin:0 0 6px"><strong>Dirección:</strong> ${datosEnvio.calleNumero || ''}${datosEnvio.pisoDepto ? ` (${datosEnvio.pisoDepto})` : ''}</p>`;
+
         const html = wrapHTML(
             '¡Pedido recibido!',
             `<p>Hola <strong>${datosEnvio.nombreCompleto}</strong>,</p>
@@ -107,9 +169,10 @@ async function enviarEmailPedido(datosEnvio, pedido) {
                <p style="margin:0 0 6px"><strong>Tipo de envío:</strong> 
                  ${pedido.tipoEnvio === 'sucursal' ? 'Retiro en sucursal' : 'Envío a domicilio'}
                </p>
+               ${direccionDetalle}
                <p style="margin:0 0 6px"><strong>Provincia:</strong> ${datosEnvio.provincia}, ${datosEnvio.localidad}</p>
                 <p style="margin:0">
-                  <a href="${(process.env.SITE_FRONTEND_URL || process.env.FRONTEND_URL || 'https://www.looserfit.com').replace(/\/$/, '')}/seguimiento/${pedido.trackingToken}" style="color:#0d0d0d;font-weight:bold">
+                  <a href="${trackingLink}" style="color:#0d0d0d;font-weight:bold">
                      Ver estado de mi pedido
                   </a>
                 </p>
@@ -121,17 +184,16 @@ async function enviarEmailPedido(datosEnvio, pedido) {
               </p>`
         );
 
-        await transporter.sendMail({
-            from: `"${process.env.SITE_NAME || 'Store'}" <${process.env.EMAIL_USER || 'looserfit2004@gmail.com'}>`,
+        await sendEmail({
             to: datosEnvio.email,
             subject: `Pedido recibido — Orden ${pedido.orderNumber}`,
             html
         });
 
-        console.log(`✅ Email enviado a ${datosEnvio.email}`);
+        console.log(`✅ Email pedido enviado a ${datosEnvio.email} (Orden ${pedido.orderNumber})`);
         return true;
     } catch (err) {
-        console.error('❌ Error email pedido:', err.message);
+        console.error(`❌ [Email Error] tipo: Pedido recibido | orden: ${pedido?.orderNumber || 'N/A'} | error:`, err.message);
         return false;
     }
 }
@@ -152,17 +214,16 @@ async function enviarEmailEmpaquetado(datosEnvio, pedido) {
              <p>Te avisaremos por este medio en cuanto el correo pase a retirarlo para darte tu código de seguimiento (si aplica).</p>`
         );
 
-        await transporter.sendMail({
-            from: `"${process.env.SITE_NAME || 'Store'}" <${process.env.EMAIL_USER || 'looserfit2004@gmail.com'}>`,
+        await sendEmail({
             to: datosEnvio.email,
             subject: `📦 Tu pedido ${pedido.orderNumber} ya está listo - ${process.env.SITE_NAME || 'Store'}`,
             html
         });
 
-        console.log(`✅ Email de empaquetado enviado a ${datosEnvio.email}`);
+        console.log(`✅ Email empaquetado enviado a ${datosEnvio.email} (Orden ${pedido.orderNumber})`);
         return true;
     } catch (error) {
-        console.error('❌ Error email empaquetado:', error.message);
+        console.error(`❌ [Email Error] tipo: Empaquetado | orden: ${pedido?.orderNumber || 'N/A'} | error:`, error.message);
         return false;
     }
 }
@@ -183,25 +244,22 @@ async function enviarEmailPagoAprobado(datosEnvio, pedido) {
              <p>Te avisaremos en cuanto el pedido esté listo y cuando sea despachado al correo.</p>`
         );
 
-        await transporter.sendMail({
-            from: `"Looserfit" <${process.env.EMAIL_USER || 'looserfit2004@gmail.com'}>`,
+        await sendEmail({
             to: datosEnvio.email,
             subject: `🎉 Pago aprobado - Orden ${pedido.orderNumber} - Looserfit`,
             html
         });
 
-        console.log(`✅ Email de pago aprobado enviado a ${datosEnvio.email}`);
+        console.log(`✅ Email pago aprobado enviado a ${datosEnvio.email} (Orden ${pedido.orderNumber})`);
         return true;
     } catch (error) {
-        console.error('❌ Error email pago aprobado:', error.message);
+        console.error(`❌ [Email Error] tipo: Pago aprobado | orden: ${pedido?.orderNumber || 'N/A'} | error:`, error.message);
         return false;
     }
 }
 
 // ── Email al cliente con código de seguimiento ──
 async function enviarEmailSeguimiento(datosEnvio, trackingNumber, orderNumber) {
-    // removed early return to allow fallback
-
     try {
         const trackingUrl = `https://www.correoargentino.com.ar/seguimiento-de-envios?codigoSeguimiento=${trackingNumber}`;
 
@@ -230,26 +288,27 @@ async function enviarEmailSeguimiento(datosEnvio, trackingNumber, orderNumber) {
              </p>`
         );
 
-        await transporter.sendMail({
-            from: `"Looserfit" <${process.env.EMAIL_USER || 'looserfit2004@gmail.com'}>`,
+        await sendEmail({
             to: datosEnvio.email,
             subject: `Tu pedido está en camino — Código ${trackingNumber}`,
             html
         });
 
-        console.log(`✅ Email seguimiento enviado a ${datosEnvio.email}`);
+        console.log(`✅ Email seguimiento enviado a ${datosEnvio.email} (Orden ${orderNumber})`);
         return true;
     } catch (err) {
-        console.error('❌ Error email seguimiento:', err.message);
+        console.error(`❌ [Email Error] tipo: Seguimiento | orden: ${orderNumber || 'N/A'} | error:`, err.message);
         return false;
     }
 }
 
 // ── Notificación interna al admin ──
 async function enviarEmailNotificacionAdmin(pedido) {
-    // removed early return to allow fallback
-
     try {
+        const direccionAdmin = pedido.tipoEnvio === 'sucursal'
+            ? `<tr style="background:#f5f3ef"><td style="padding:8px"><strong>Sucursal</strong></td><td style="padding:8px">${pedido.datosEnvio?.direccionSucursal || 'No especificada'}</td></tr>`
+            : `<tr style="background:#f5f3ef"><td style="padding:8px"><strong>Dirección</strong></td><td style="padding:8px">${pedido.datosEnvio?.calleNumero || ''}${pedido.datosEnvio?.pisoDepto ? ` (${pedido.datosEnvio.pisoDepto})` : ''}</td></tr>`;
+
         const html = wrapHTML(
             `🛒 Nuevo Pedido — ${pedido.orderNumber}`,
             `<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:16px">
@@ -279,16 +338,7 @@ async function enviarEmailNotificacionAdmin(pedido) {
                  <td style="padding:8px"><strong>Provincia</strong></td>
                  <td style="padding:8px">${pedido.datosEnvio?.provincia}, ${pedido.datosEnvio?.localidad}</td>
                </tr>
-               ${pedido.datosEnvio?.calleNumero ? `
-               <tr style="background:#f5f3ef">
-                 <td style="padding:8px"><strong>Dirección</strong></td>
-                 <td style="padding:8px">${pedido.datosEnvio.calleNumero}</td>
-               </tr>` : ''}
-               ${pedido.datosEnvio?.direccionSucursal ? `
-               <tr>
-                 <td style="padding:8px"><strong>Sucursal</strong></td>
-                 <td style="padding:8px">${pedido.datosEnvio.direccionSucursal}</td>
-               </tr>` : ''}
+               ${direccionAdmin}
              </table>
 
              <h4 style="border-top:1px solid #d4d0c8;padding-top:16px">Productos</h4>
@@ -297,23 +347,25 @@ async function enviarEmailNotificacionAdmin(pedido) {
              </table>`
         );
 
-        await transporter.sendMail({
-            from: `"${process.env.SITE_NAME || 'Store'} Bot" <${process.env.EMAIL_USER || 'looserfit2004@gmail.com'}>`,
+        await sendEmail({
             to: process.env.EMAIL_USER || 'looserfit2004@gmail.com',
             subject: `🛒 Nuevo pedido ${pedido.orderNumber} — ${pedido.datosEnvio?.nombreCompleto}`,
             html
         });
 
-        console.log('✅ Notificación admin enviada');
+        console.log(`✅ Notificación admin enviada (Orden ${pedido.orderNumber})`);
         return true;
     } catch (err) {
-        console.error('❌ Error email admin:', err.message);
+        console.error(`❌ [Email Error] tipo: Notificación admin | orden: ${pedido?.orderNumber || 'N/A'} | error:`, err.message);
         return false;
     }
 }
 
 module.exports = {
     transporter,
+    sendEmail,
+    wrapHTML,
+    productosHTML,
     enviarEmailPedido,
     enviarEmailPagoAprobado,
     enviarEmailEmpaquetado,
