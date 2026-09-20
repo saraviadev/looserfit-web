@@ -44,7 +44,12 @@ const getUserById = async (id) => {
 };
 
 const updateProfile = async (id, updateData) => {
-    return await User.findByIdAndUpdate(id, updateData, { new: true }).select('-password');
+    // Sanitizar campos permitidos para evitar escalación de privilegios (Mass Assignment)
+    const allowedUpdates = {};
+    if (updateData.nombre !== undefined) allowedUpdates.nombre = updateData.nombre;
+    if (updateData.email !== undefined) allowedUpdates.email = updateData.email.toLowerCase().trim();
+
+    return await User.findByIdAndUpdate(id, { $set: allowedUpdates }, { returnDocument: 'after' }).select('-password');
 };
 
 const registerFromOrder = async (data) => {
