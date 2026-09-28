@@ -809,3 +809,111 @@
     min-width: 500px;
   }
 }
+/* ── Badges de estado de pedidos ── */
+.order-status {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.6rem;
+  display: inline-block;
+  font-weight: 700;
+  border-radius: 2px;
+}
+
+.order-status--pendiente {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.order-status--pagado {
+  background: #d4edda;
+  color: #155724;
+}
+
+.order-status--empaquetado {
+  background: #e8eaf6;
+  color: #4338ca;
+}
+
+.order-status--enviado {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.order-status--entregado {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.order-status--cancelado {
+  background: #fce4ec;
+  color: #b91c1c;
+}
+
+/* ── Tabs de navegación (Activos / Papelera) ── */
+.admin-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 1.5rem;
+}
+
+.admin-tab {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.75rem 1.2rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  color: var(--gray-3);
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-tab:hover {
+  color: var(--black);
+}
+
+.admin-tab--active {
+  color: var(--black);
+  border-bottom-color: var(--black);
+}
+
+.admin-tab__count {
+  font-size: 0.55rem;
+  background: #f0f0f0;
+  padding: 0.15rem 0.4rem;
+  border-radius: 10px;
+  min-width: 1.2rem;
+  text-align: center;
+}
+
+.admin-tab--active .admin-tab__count {
+  background: var(--black);
+  color: var(--white);
+}
+
+/* ── Botón Restaurar (verde) ── */
+.admin-btn-restore {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.8rem;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.admin-btn-restore:hover {
+  background: #2e7d32;
+  color: #fff;
+}

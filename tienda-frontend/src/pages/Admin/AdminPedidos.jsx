@@ -1,32 +1,52 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getPedidos, eliminarPedido, eliminarPedidosBulk } from '../../services/api'
+import { getPedidos, eliminarPedido, eliminarPedidosBulk, restaurarPedido, restaurarPedidosBulk } from '../../services/api'
 import { useAdminBrand } from '../../context/AdminBrandContext'
 import './Admin.css'
 
+// Confirmación reforzada según estado del pedido
+const getDeleteMessage = (pedido) => {
+  const base = `¿Mover pedido ${pedido.orderNumber} a la papelera?`
+  const restore = '\n\nPodés restaurarlo en cualquier momento desde la pestaña Papelera.'
+  
+  if (['Pagado', 'Empaquetado'].includes(pedido.estado)) {
+    return `⚠️ ATENCIÓN: Este pedido está ${pedido.estado.toUpperCase()}.\n${base}${restore}`
+  }
+  if (pedido.estado === 'Enviado' || pedido.trackingNumber) {
+    return `🚨 Este pedido ya fue ENVIADO${pedido.trackingNumber ? ` (tracking: ${pedido.trackingNumber})` : ''}.\n${base}${restore}`
+  }
+  return `${base}${restore}`
+}
+
 export default function AdminPedidos() {
   const [pedidos, setPedidos] = useState([])
+  const [deletedPedidos, setDeletedPedidos] = useState([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [selectedIds, setSelectedIds] = useState([])
+  const [activeTab, setActiveTab] = useState('activos') // 'activos' | 'papelera'
   // Multi-marca: filtrar pedidos por la marca activa
   const { activeBrand } = useAdminBrand()
 
   const fetchPedidos = () => {
     setLoading(true)
-    getPedidos()
-      .then(data => { 
-        console.log('API RESPONSE (pedidos):', data);
-        if (!Array.isArray(data)) {
-          console.warn('La API no devolvió un array:', data);
+    Promise.all([
+      getPedidos(false),
+      getPedidos(true)
+    ])
+      .then(([activos, eliminados]) => {
+        console.log('API RESPONSE (pedidos):', activos);
+        if (!Array.isArray(activos)) {
+          console.warn('La API no devolvió un array:', activos);
         }
-        setPedidos(data); 
-        setLoading(false);
+        setPedidos(activos)
+        setDeletedPedidos(eliminados)
+        setLoading(false)
       })
-      .catch((err) => { 
+      .catch((err) => {
         console.error('Error fetching pedidos:', err);
-        setLoading(false);
-        alert('Error al cargar pedidos: ' + err.message);
+        setLoading(false)
+        alert('Error al cargar pedidos: ' + err.message)
       })
   }
 
@@ -34,12 +54,12 @@ export default function AdminPedidos() {
     setTimeout(() => fetchPedidos(), 0)
   }, [])
 
-  const filteredPedidos = useMemo(() => {
+  // Filtrar por marca y búsqueda
+  const filterByBrandAndSearch = (list) => {
     const term = search.trim().toLowerCase()
 
     // Multi-marca: filtrar por la marca activa del selector
-    // Los pedidos sin brand.slug se asumen de 'fit' (datos migrados)
-    const porMarca = pedidos.filter(p => {
+    const porMarca = list.filter(p => {
       const brandSlug = p.brand?.slug || 'fit'
       return brandSlug === activeBrand
     })
@@ -52,7 +72,18 @@ export default function AdminPedidos() {
       const cliente = p.datosEnvio?.nombreCompleto?.toLowerCase() || ''
       return orderNumber.includes(term) || id.includes(term) || cliente.includes(term)
     })
-  }, [pedidos, search, activeBrand])
+  }
+
+  const filteredPedidos = useMemo(() => filterByBrandAndSearch(pedidos), [pedidos, search, activeBrand])
+  const filteredDeleted = useMemo(() => filterByBrandAndSearch(deletedPedidos), [deletedPedidos, search, activeBrand])
+
+  // Cuadro inferior: solo pagados de la lista activa
+  const pedidosPagados = useMemo(() => {
+    return filteredPedidos.filter(p => p.estado === 'Pagado')
+  }, [filteredPedidos])
+
+  // Lista activa según tab
+  const currentList = activeTab === 'activos' ? filteredPedidos : filteredDeleted
 
   const toggleSelect = (id) => {
     setSelectedIds(prev => 
@@ -61,18 +92,20 @@ export default function AdminPedidos() {
   }
 
   const toggleSelectAll = () => {
-    if (selectedIds.length === filteredPedidos.length) {
+    if (selectedIds.length === currentList.length) {
       setSelectedIds([])
     } else {
-      setSelectedIds(filteredPedidos.map(p => p._id))
+      setSelectedIds(currentList.map(p => p._id))
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Seguro que querés eliminar este pedido?')) return
+  const handleDelete = async (pedido) => {
+    if (!window.confirm(getDeleteMessage(pedido))) return
     try {
-      await eliminarPedido(id)
-      setPedidos(prev => prev.filter(p => p._id !== id))
+      await eliminarPedido(pedido._id)
+      // Mover de activos a eliminados en el state local
+      setPedidos(prev => prev.filter(p => p._id !== pedido._id))
+      setDeletedPedidos(prev => [{ ...pedido, deleted: true, deletedAt: new Date().toISOString() }, ...prev])
     } catch (err) {
       alert(err.message)
     }
@@ -80,27 +113,93 @@ export default function AdminPedidos() {
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return
-    if (!window.confirm(`¿Seguro que querés eliminar ${selectedIds.length} pedidos?`)) return
+    if (!window.confirm(`¿Mover ${selectedIds.length} pedidos a la papelera?\n\nPodés restaurarlos desde la pestaña Papelera.`)) return
     try {
       await eliminarPedidosBulk(selectedIds)
+      const movedPedidos = pedidos.filter(p => selectedIds.includes(p._id))
       setPedidos(prev => prev.filter(p => !selectedIds.includes(p._id)))
+      setDeletedPedidos(prev => [...movedPedidos.map(p => ({ ...p, deleted: true, deletedAt: new Date().toISOString() })), ...prev])
       setSelectedIds([])
     } catch (err) {
       alert(err.message)
     }
   }
 
+  const handleRestore = async (id) => {
+    try {
+      const res = await restaurarPedido(id)
+      // Mover de eliminados a activos en el state local
+      setDeletedPedidos(prev => prev.filter(p => p._id !== id))
+      if (res.pedido) {
+        setPedidos(prev => [res.pedido, ...prev])
+      } else {
+        fetchPedidos()
+      }
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  const handleBulkRestore = async () => {
+    if (selectedIds.length === 0) return
+    if (!window.confirm(`¿Restaurar ${selectedIds.length} pedidos?`)) return
+    try {
+      await restaurarPedidosBulk(selectedIds)
+      const restoredPedidos = deletedPedidos.filter(p => selectedIds.includes(p._id))
+      setDeletedPedidos(prev => prev.filter(p => !selectedIds.includes(p._id)))
+      setPedidos(prev => [...restoredPedidos.map(p => ({ ...p, deleted: false, deletedAt: null })), ...prev])
+      setSelectedIds([])
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  // Limpiar selección al cambiar de tab
+  const switchTab = (tab) => {
+    setActiveTab(tab)
+    setSelectedIds([])
+  }
+
   return (
     <div>
       <div className="admin-page-header">
-        <h2 className="admin-page-title">Pedidos</h2>
-        {selectedIds.length > 0 && (
-          <button className="admin-btn admin-btn--danger" onClick={handleBulkDelete}>
-            Eliminar seleccionados ({selectedIds.length})
+        <div>
+          <h2 className="admin-page-title">Pedidos</h2>
+          <p className="admin-page-sub">
+            Gestioná pedidos, estados y despachos.
+          </p>
+        </div>
+        {selectedIds.length > 0 && activeTab === 'activos' && (
+          <button className="admin-btn-primary" style={{ background: '#b91c1c' }} onClick={handleBulkDelete}>
+            Mover a papelera ({selectedIds.length})
+          </button>
+        )}
+        {selectedIds.length > 0 && activeTab === 'papelera' && (
+          <button className="admin-btn-restore" onClick={handleBulkRestore}>
+            Restaurar seleccionados ({selectedIds.length})
           </button>
         )}
       </div>
 
+      {/* Tabs */}
+      <div className="admin-tabs">
+        <button
+          className={`admin-tab ${activeTab === 'activos' ? 'admin-tab--active' : ''}`}
+          onClick={() => switchTab('activos')}
+        >
+          Activos
+          <span className="admin-tab__count">{filteredPedidos.length}</span>
+        </button>
+        <button
+          className={`admin-tab ${activeTab === 'papelera' ? 'admin-tab--active' : ''}`}
+          onClick={() => switchTab('papelera')}
+        >
+          🗑️ Papelera
+          <span className="admin-tab__count">{filteredDeleted.length}</span>
+        </button>
+      </div>
+
+      {/* Buscador */}
       <div className="admin-page-header" style={{ marginBottom: '1rem', gap: '0.5rem', display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
         <label htmlFor="search-pedidos" style={{ fontWeight: 600 }}>Buscar:</label>
         <input
@@ -113,6 +212,7 @@ export default function AdminPedidos() {
         />
       </div>
 
+      {/* Cuadro 1: Tabla principal (activos o papelera según tab) */}
       <div className="admin-table-wrap">
         <table className="admin-table">
           <thead>
@@ -120,7 +220,7 @@ export default function AdminPedidos() {
               <th>
                 <input 
                   type="checkbox" 
-                  checked={selectedIds.length > 0 && selectedIds.length === filteredPedidos.length}
+                  checked={selectedIds.length > 0 && selectedIds.length === currentList.length}
                   onChange={toggleSelectAll}
                 />
               </th>
@@ -130,15 +230,21 @@ export default function AdminPedidos() {
               <th>Total</th>
               <th>Estado</th>
               <th>Fecha</th>
+              {activeTab === 'papelera' && <th>Eliminado</th>}
               <th>Accion</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={8}>Cargando...</td></tr>
-            ) : filteredPedidos.length === 0 ? (
-              <tr><td colSpan={8}>No se encontraron pedidos para la búsqueda.</td></tr>
-            ) : filteredPedidos.map(p => (
+              <tr><td colSpan={activeTab === 'papelera' ? 9 : 8}>Cargando...</td></tr>
+            ) : currentList.length === 0 ? (
+              <tr><td colSpan={activeTab === 'papelera' ? 9 : 8}>
+                {activeTab === 'papelera' 
+                  ? 'La papelera está vacía.'
+                  : 'No se encontraron pedidos para la búsqueda.'
+                }
+              </td></tr>
+            ) : currentList.map(p => (
               <tr key={p._id}>
                 <td>
                   <input 
@@ -151,17 +257,92 @@ export default function AdminPedidos() {
                 <td className="table-id">{p._id}</td>
                 <td>{p.datosEnvio?.nombreCompleto || p.usuario?.nombre || '-'}</td>
                 <td className="table-mono">${Number(p.total || 0).toLocaleString('es-AR')}</td>
-                <td>{p.estado || '-'}</td>
+                <td>
+                  <span className={`order-status order-status--${(p.estado || '').toLowerCase()}`}>
+                    {p.estado || '-'}
+                  </span>
+                </td>
                 <td>{p.createdAt ? new Date(p.createdAt).toLocaleDateString('es-AR') : '-'}</td>
+                {activeTab === 'papelera' && (
+                  <td style={{ fontSize: '0.8rem', color: '#888' }}>
+                    {p.deletedAt ? new Date(p.deletedAt).toLocaleDateString('es-AR') : '-'}
+                  </td>
+                )}
                 <td style={{ display: 'flex', gap: '8px' }}>
                   <Link className="table-link" to={`/admin/pedidos/${p._id}`}>Ver</Link>
-                  <button className="table-link-danger" onClick={() => handleDelete(p._id)}>Borrar</button>
+                  {activeTab === 'activos' ? (
+                    <button className="table-link-danger" onClick={() => handleDelete(p)}>Borrar</button>
+                  ) : (
+                    <button className="admin-btn-restore" onClick={() => handleRestore(p._id)}>Restaurar</button>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {/* ── Cuadro 2: Pedidos Pagados (Listos para despachar) ── */}
+      {activeTab === 'activos' && (
+        <>
+          <div className="admin-page-header" style={{ marginTop: '4rem', borderTop: '1px solid #eee', paddingTop: '2rem' }}>
+            <div>
+              <h2 className="admin-page-title" id="pagados">📦 Pedidos Pagados — Listos para despachar</h2>
+              <p className="admin-page-sub">
+                Pedidos con pago confirmado pendientes de empaquetado / envío por Correo Argentino.
+              </p>
+            </div>
+          </div>
+
+          <div className="admin-table-wrap">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Orden</th>
+                  <th>Cliente</th>
+                  <th>Teléfono</th>
+                  <th>Productos</th>
+                  <th>Tipo Envío</th>
+                  <th>Total</th>
+                  <th>Fecha</th>
+                  <th>Accion</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loading
+                  ? <tr><td colSpan={8}>Cargando...</td></tr>
+                  : pedidosPagados.length === 0
+                    ? <tr><td colSpan={8} className="admin-empty">No hay pedidos pagados pendientes de despacho. ¡Todo al día! 🎉</td></tr>
+                    : pedidosPagados.map(p => (
+                        <tr key={p._id}>
+                          <td className="table-id">{p.orderNumber || '-'}</td>
+                          <td>{p.datosEnvio?.nombreCompleto || '-'}</td>
+                          <td className="table-mono">{p.datosEnvio?.telefono || '-'}</td>
+                          <td>
+                            {p.productos?.map((prod, i) => (
+                              <div key={`${prod.productoId}-${i}`} style={{ fontSize: '0.8rem', lineHeight: '1.4' }}>
+                                <strong>{prod.nombre}</strong>
+                                {prod.talle && <span style={{ color: '#888' }}> ({prod.talle})</span>}
+                                <span style={{ color: '#555' }}> x{prod.cantidad}</span>
+                              </div>
+                            ))}
+                          </td>
+                          <td style={{ fontSize: '0.8rem', textTransform: 'capitalize' }}>
+                            {p.tipoEnvio === 'sucursal' ? '📮 Sucursal' : '🏠 Domicilio'}
+                          </td>
+                          <td className="table-mono">${Number(p.total || 0).toLocaleString('es-AR')}</td>
+                          <td>{p.createdAt ? new Date(p.createdAt).toLocaleDateString('es-AR') : '-'}</td>
+                          <td>
+                            <Link className="table-link" to={`/admin/pedidos/${p._id}`}>Gestionar</Link>
+                          </td>
+                        </tr>
+                      ))
+                }
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   )
 }

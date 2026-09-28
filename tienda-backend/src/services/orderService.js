@@ -93,12 +93,15 @@ const createOrder = async (orderData) => {
     return nuevoPedido;
 };
 
-const getAllOrders = async () => {
-    return await Order.find().sort({ createdAt: -1 });
+const getAllOrders = async (query = {}) => {
+    const filter = query.deleted === 'true'
+        ? { deleted: true }
+        : { deleted: { $ne: true } };
+    return await Order.find(filter).populate('brand', 'slug name').sort({ createdAt: -1 });
 };
 
 const getOrdersByUser = async (usuarioId) => {
-    return await Order.find({ usuario: usuarioId }).sort({ createdAt: -1 });
+    return await Order.find({ usuario: usuarioId, deleted: { $ne: true } }).sort({ createdAt: -1 });
 };
 
 const getOrderById = async (id) => {
@@ -144,22 +147,40 @@ const uploadComprobante = async (id, comprobantePath) => {
     return await Order.findByIdAndUpdate(id, { comprobante: comprobantePath }, { new: true });
 };
 
+// Soft delete: marcar como eliminado sin borrar datos ni comprobantes
 const deleteOrder = async (id) => {
-    const pedido = await Order.findById(id);
-    if (pedido && pedido.comprobante) {
-        await deleteFromCloudinary(pedido.comprobante);
-    }
-    return await Order.findByIdAndDelete(id);
+    return await Order.findByIdAndUpdate(
+        id,
+        { deleted: true, deletedAt: new Date() },
+        { returnDocument: 'after' }
+    );
 };
 
+// Soft delete masivo: marcar como eliminados sin borrar datos ni comprobantes
 const bulkDeleteOrders = async (ids) => {
-    const pedidos = await Order.find({ _id: { $in: ids } });
-    for (const pedido of pedidos) {
-        if (pedido.comprobante) {
-            await deleteFromCloudinary(pedido.comprobante);
-        }
-    }
-    return await Order.deleteMany({ _id: { $in: ids } });
+    restoreOrder,
+    bulkRestoreOrders
+    return await Order.updateMany(
+        { _id: { $in: ids } },
+        { deleted: true, deletedAt: new Date() }
+    );
+};
+
+// Restaurar pedido eliminado
+const restoreOrder = async (id) => {
+    return await Order.findByIdAndUpdate(
+        id,
+        { deleted: false, deletedAt: null },
+        { returnDocument: 'after' }
+    ).populate('brand', 'slug name');
+};
+
+// Restaurar pedidos eliminados en masa
+const bulkRestoreOrders = async (ids) => {
+    return await Order.updateMany(
+        { _id: { $in: ids } },
+        { deleted: false, deletedAt: null }
+    );
 };
 
 module.exports = {

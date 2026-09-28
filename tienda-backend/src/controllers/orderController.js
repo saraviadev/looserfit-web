@@ -25,7 +25,7 @@ const createOrder = async (req, res) => {
 
 const getAllOrders = async (req, res) => {
     try {
-        const orders = await orderService.getAllOrders();
+        const orders = await orderService.getAllOrders(req.query);
         res.json(orders);
     } catch (error) {
         console.error('Error getAllOrders:', error);
@@ -157,6 +157,31 @@ const bulkDeleteOrders = async (req, res) => {
     }
 };
 
+// Restaurar pedido eliminado (soft delete)
+const restoreOrder = async (req, res) => {
+    try {
+        const order = await orderService.restoreOrder(req.params.id);
+        if (!order) return res.status(404).json({ mensaje: 'Pedido no encontrado' });
+        res.json({ mensaje: 'Pedido restaurado con éxito', pedido: order });
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al restaurar pedido', error: error.message });
+    }
+};
+
+// Restaurar pedidos en masa (soft delete)
+const bulkRestoreOrders = async (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ mensaje: 'No se enviaron IDs válidos' });
+        }
+        await orderService.bulkRestoreOrders(ids);
+        res.json({ mensaje: 'Pedidos restaurados con éxito' });
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al restaurar pedidos en masa', error: error.message });
+    }
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
@@ -167,5 +192,7 @@ module.exports = {
     updateTracking,
     uploadComprobante,
     deleteOrder,
-    bulkDeleteOrders
+    bulkDeleteOrders,
+    restoreOrder,
+    bulkRestoreOrders
 };

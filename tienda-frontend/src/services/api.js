@@ -209,7 +209,7 @@ export async function eliminarPedido(id) {
     method: 'DELETE',
     headers: { ...getAuthHeaders() }
   })
-  if (!res.ok) throw new Error('No se pudo eliminar el pedido')
+  if (!res.ok) throw new Error('No se pudo mover el pedido a la papelera')
   return res.json()
 }
 
@@ -222,7 +222,7 @@ export async function eliminarPedidosBulk(ids) {
     },
     body: JSON.stringify({ ids })
   })
-  if (!res.ok) throw new Error('No se pudieron eliminar los pedidos')
+  if (!res.ok) throw new Error('No se pudieron mover los pedidos a la papelera')
   return res.json()
 }
 
@@ -405,5 +405,26 @@ export async function crearPedidoConBrand(pedidoData, brandSlug) {
     }
     throw new Error(mensaje)
   }
+  return res.json()
+}
+export async function restaurarPedido(id) {
+  const res = await fetch(`${BASE_URL}/orders/${id}/restore`, {
+    method: 'PATCH',
+    headers: { ...getAuthHeaders() }
+  })
+  if (!res.ok) throw new Error('No se pudo restaurar el pedido')
+  return res.json()
+}
+
+export async function restaurarPedidosBulk(ids) {
+  const res = await fetch(`${BASE_URL}/orders/restore-bulk`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify({ ids })
+  })
+  if (!res.ok) throw new Error('No se pudieron restaurar los pedidos')
   return res.json()
 }

@@ -44,9 +44,13 @@ const orderSchema = new mongoose.Schema({
     usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Opcional: Para usuarios registrados
     trackingToken: { type: String, required: true, unique: true }, // Token para seguimiento público sin login
     trackingNumber: { type: String }, // Número de seguimiento Correo Argentino
+
+    // Soft delete — permite restaurar pedidos eliminados por error
+    deleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date, default: null },
 }, { timestamps: true });
 
 // Índice compuesto para listar pedidos por marca ordenados por fecha
-orderSchema.index({ brand: 1, createdAt: -1 });
+orderSchema.index({ brand: 1, deleted: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', orderSchema);

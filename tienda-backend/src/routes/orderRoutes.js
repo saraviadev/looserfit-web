@@ -35,4 +35,10 @@ router.delete('/:id', protect, adminOnly, orderController.deleteOrder);
 // --- ELIMINAR PEDIDOS EN MASA (Solo Admin) ---
 router.post('/delete-bulk', protect, adminOnly, orderController.bulkDeleteOrders);
 
+// --- RESTAURAR PEDIDO ELIMINADO (Solo Admin) ---
+router.patch('/:id/restore', protect, adminOnly, orderController.restoreOrder);
+
+// --- RESTAURAR PEDIDOS EN MASA (Solo Admin) ---
+router.post('/restore-bulk', protect, adminOnly, orderController.bulkRestoreOrders);
+
 module.exports = router;
