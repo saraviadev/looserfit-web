@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getProductoById } from '../../services/api'
 import { useCart } from '../../context/CartContext'
+import { optimizeImage } from '../../utils/imageOptimizer'
 import './Producto.css'
 
 export default function Producto() {
@@ -89,7 +90,7 @@ export default function Producto() {
               onClick={() => setLightbox(true)}
             >
               <img
-                src={producto.imagenes?.[imgActiva] || '/placeholder.jpg'}
+                src={optimizeImage(producto.imagenes?.[imgActiva] || '/placeholder.jpg', 1000, 85)}
                 alt={producto.nombre}
                 className="galeria__img-main"
               />
@@ -103,7 +104,7 @@ export default function Producto() {
                     className={`galeria__thumb ${imgActiva === i ? 'galeria__thumb--active' : ''}`}
                     onClick={() => setImgActiva(i)}
                   >
-                    <img src={img} alt={`Vista ${i + 1}`} />
+                    <img src={optimizeImage(img, 160, 75)} alt={`Vista ${i + 1}`} />
                   </button>
                 ))}
               </div>

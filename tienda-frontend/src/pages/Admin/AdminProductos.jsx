@@ -284,7 +284,7 @@ export default function AdminProductos() {
                     </td>
                     <td className="table-product">
                       {p.imagenes?.[0] && (
-                        <img src={p.imagenes[0]} alt={p.nombre} className="table-thumb" />
+                        <img src={optimizeImage(p.imagenes[0], 120, 70)} alt={p.nombre} className="table-thumb" />
                       )}
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -427,7 +427,7 @@ export default function AdminProductos() {
                     <tr key={p._id}>
                       <td className="table-product">
                         {p.imagenes?.[0] && (
-                          <img src={p.imagenes[0]} alt={p.nombre} className="table-thumb" />
+                          <img src={optimizeImage(p.imagenes[0], 120, 70)} alt={p.nombre} className="table-thumb" />
                         )}
                         <div>
                           <span className="table-nombre">{p.nombre}</span>

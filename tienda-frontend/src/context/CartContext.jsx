@@ -1,3 +1,4 @@
+import { optimizeImage } from '../utils/imageOptimizer'
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { getProductoById } from '../services/api'
@@ -75,7 +76,7 @@ export function CartProvider({ brandSlug, children }) {
         _id: producto._id,
         nombre: producto.nombre,
         precio: precioUnitario,
-        imagen: producto.imagenes?.[0] || '/placeholder.jpg',
+        imagen: optimizeImage(producto.imagenes?.[0] || '/placeholder.jpg', 200, 75),
         talle,
         cantidad,
       }]

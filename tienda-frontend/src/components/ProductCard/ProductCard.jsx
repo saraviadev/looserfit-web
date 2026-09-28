@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { optimizeImage } from '../../utils/imageOptimizer'
 import './ProductCard.css'
 
 export default function ProductCard({ producto, loading = false }) {
@@ -14,7 +15,7 @@ export default function ProductCard({ producto, loading = false }) {
     )
   }
 
-  const imagen = producto.imagenes?.[0] || '/placeholder.jpg'
+  const imagen = optimizeImage(producto.imagenes?.[0] || '/placeholder.jpg', 600, 80)
   const precio = producto.precio?.toLocaleString('es-AR')
   const precioOferta = producto.precioOferta?.toLocaleString('es-AR')
   const tieneOferta = producto.precioOferta && producto.precioOferta > 0
