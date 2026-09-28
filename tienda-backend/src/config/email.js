@@ -60,7 +60,8 @@ async function sendEmail({ to, bcc, subject, html }) {
             from,
             to: recipientList,
             subject,
-            html
+            html,
+            reply_to: process.env.EMAIL_USER || 'looserfit2004@gmail.com'
         };
 
         if (bcc) {
@@ -89,6 +90,7 @@ async function sendEmail({ to, bcc, subject, html }) {
     const mailOptions = {
         from,
         to: to || (bcc ? (process.env.EMAIL_USER || 'looserfit2004@gmail.com') : undefined),
+        replyTo: process.env.EMAIL_USER || 'looserfit2004@gmail.com',
         subject,
         html
     };
