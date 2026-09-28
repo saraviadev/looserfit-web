@@ -38,11 +38,15 @@ if (process.env.NODE_ENV !== 'test') {
 
 // ── Motor unificado de envío: Resend API HTTP con fallback a Nodemailer SMTP ──
 async function sendEmail({ to, bcc, subject, html }) {
-    const defaultFrom = `"${process.env.SITE_NAME || 'Store'}" <${process.env.EMAIL_USER || 'looserfit2004@gmail.com'}>`;
-    const from = process.env.EMAIL_FROM || defaultFrom;
+    const defaultFrom = `"${process.env.SITE_NAME || 'Looser Fit'}" <${process.env.EMAIL_USER || 'looserfit2004@gmail.com'}>`;
+    let from = process.env.EMAIL_FROM || defaultFrom;
 
     // 1. Si existe API KEY de Resend, enviamos vía HTTP (puerto 443, sin bloqueos de puerto en Render)
     if (process.env.RESEND_API_KEY) {
+        // En Resend, si no hay un dominio personalizado verificado en EMAIL_FROM, usar el remitente oficial de prueba
+        if (!process.env.EMAIL_FROM || process.env.EMAIL_FROM.includes('gmail.com')) {
+            from = `"${process.env.SITE_NAME || 'Looser Fit'}" <onboarding@resend.dev>`;
+        }
         let recipientList = [];
         if (to) {
             recipientList = Array.isArray(to) ? to : [to];
