@@ -40,7 +40,7 @@ describe('Fase 1 — Tests de Caracterización y Guarda de Seguridad', () => {
   // 1. Guarda Anti-Atlas
   test('Seguridad: La guarda anti-Atlas bloquea cualquier intento de conexión a mongodb.net', async () => {
     await expect(
-      mongoose.connect('mongodb+srv://admin:secret@cluster0.mongodb.net/production?retryWrites=true')
+      mongoose.connect('mongodb://dummy-test.mongodb.net/test')
     ).rejects.toThrow(/SEGURIDAD CRÍTICA.*Atlas/);
   });
 
