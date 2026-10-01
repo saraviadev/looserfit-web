@@ -47,7 +47,7 @@ async function sendEmail({ to, bcc, subject, html }) {
         if (!process.env.EMAIL_FROM || process.env.EMAIL_FROM.includes('gmail.com')) {
             from = `"${process.env.SITE_NAME || 'Looser Fit'}" <onboarding@resend.dev>`;
         }
-        let recipientList = [];
+        let recipientList;
         if (to) {
             recipientList = Array.isArray(to) ? to : [to];
         } else if (process.env.EMAIL_USER) {

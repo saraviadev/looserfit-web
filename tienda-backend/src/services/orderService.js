@@ -2,29 +2,8 @@ const Order = require('../models/Order');
 const Counter = require('../models/Counter');
 const Product = require('../models/product');
 const crypto = require('crypto');
-const { enviarEmailPedido, enviarEmailSeguimiento, enviarEmailNotificacionAdmin } = require('../config/email');
+const { enviarEmailPedido, enviarEmailSeguimiento } = require('../config/email');
 const { deleteFromCloudinary } = require('../utils/cloudinaryUtils');
-
-// Helper: reintenta una función async hasta N veces con espera creciente
-const enviarConReintentos = async (fn, maxIntentos, label = 'Email') => {
-    for (let intento = 1; intento <= maxIntentos; intento++) {
-        try {
-            const result = await fn();
-            if (result) return true;
-            throw new Error('La función retornó false');
-        } catch (err) {
-            console.warn(`⚠️ [${label}] Intento ${intento}/${maxIntentos} falló: ${err.message}`);
-            if (intento < maxIntentos) {
-                const espera = intento * 5000; // 5s, 10s, 15s
-                console.log(`   ↻ Reintentando en ${espera / 1000}s...`);
-                await new Promise(r => setTimeout(r, espera));
-            } else {
-                console.error(`❌ [${label}] Todos los intentos fallaron.`);
-            }
-        }
-    }
-    return false;
-};
 
 // Inicializa el contador con el máximo numérico existente si aún no existe
 async function initOrderCounter() {

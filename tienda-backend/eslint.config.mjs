@@ -41,6 +41,32 @@ export default [
     },
   },
   {
-    ignores: ['node_modules/**', 'dist/**', 'scripts/**', 'check_talles.js', 'normalize-talles.js'],
+    files: ['tests/**/*.js'],
+    languageOptions: {
+      globals: {
+        describe: 'readonly',
+        test: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeAll: 'readonly',
+        beforeEach: 'readonly',
+        afterAll: 'readonly',
+        afterEach: 'readonly',
+        jest: 'readonly',
+      },
+    },
+  },
+  {
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'scripts/**',
+      'check_talles.js',
+      'check-cats.js',
+      'normalize-talles.js',
+      'reproduce_issue.js',
+      'tmp_check_db.js',
+      'promoteAdmin.js'
+    ],
   },
 ]

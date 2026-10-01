@@ -3,7 +3,6 @@ const app = require('../index');
 const Brand = require('../src/models/Brand');
 const Category = require('../src/models/Category');
 const Product = require('../src/models/product');
-const Order = require('../src/models/Order');
 const orderService = require('../src/services/orderService');
 
 // Mock de emails

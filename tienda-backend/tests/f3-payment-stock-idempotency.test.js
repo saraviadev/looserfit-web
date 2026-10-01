@@ -1,5 +1,4 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
 const app = require('../index');
 const Brand = require('../src/models/Brand');
 const Category = require('../src/models/Category');

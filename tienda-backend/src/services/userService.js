@@ -2,7 +2,7 @@ const User = require('../models/User');
 const Order = require('../models/Order');
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const getJwtSecret = () => process.env.JWT_SECRET || 'looserfit_jwt_secret_fallback_key';
 
 const register = async (userData) => {
     const { nombre, email, password } = userData;
@@ -17,7 +17,7 @@ const register = async (userData) => {
     user = new User({ nombre: nombre?.trim(), email: normalizedEmail, password });
     await user.save();
 
-    const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, getJwtSecret(), { expiresIn: '7d' });
 
     return {
         token,
@@ -37,7 +37,7 @@ const login = async (email, password) => {
         throw new Error('Credenciales inválidas');
     }
 
-    const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, getJwtSecret(), { expiresIn: '7d' });
 
     return {
         token,
@@ -115,7 +115,7 @@ const registerFromOrder = async (data) => {
     order.usuario = user._id;
     await order.save();
 
-    const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id, isAdmin: user.isAdmin }, getJwtSecret(), { expiresIn: '7d' });
 
     return {
         token,
