@@ -111,7 +111,7 @@ export default function AdminProductos() {
       setProductos(prev => prev.map(prod => (ids.includes(prod._id) ? { ...prod, esNuevoDrop: true } : prod)))
       setSeleccionados(new Set())
       setOpenBulkMenu(false)
-    } catch (error) {
+    } catch {
       toast.error('No se pudo añadir los productos al Nuevo Drop masivamente.')
     } finally {
       setIsBulkActionLoading(false)
@@ -127,7 +127,7 @@ export default function AdminProductos() {
       setProductos(prev => prev.map(prod => (ids.includes(prod._id) ? { ...prod, esNuevoDrop: false } : prod)))
       setSeleccionados(new Set())
       setOpenBulkMenu(false)
-    } catch (error) {
+    } catch {
       toast.error('No se pudo remover los productos del Nuevo Drop masivamente.')
     } finally {
       setIsBulkActionLoading(false)

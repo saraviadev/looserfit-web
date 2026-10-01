@@ -165,7 +165,7 @@ export default function Footer() {
     try {
       const prev = JSON.parse(localStorage.getItem('looserfit_arrepentimientos') || '[]')
       localStorage.setItem('looserfit_arrepentimientos', JSON.stringify([record, ...prev]))
-    } catch {}
+    } catch { /* ignore */ }
 
     setArrExito(record)
   }

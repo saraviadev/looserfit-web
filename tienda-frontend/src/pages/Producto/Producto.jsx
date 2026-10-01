@@ -17,6 +17,7 @@ export default function Producto() {
   const [lightbox,    setLightbox]    = useState(false)
   const [lbZoom,      setLbZoom]      = useState(1)
   const { addItem } = useCart()
+  const { toast } = useToast()
 
   useEffect(() => {
     window.scrollTo(0, 0)

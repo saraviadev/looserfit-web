@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { getPedidos, eliminarPedido, eliminarPedidosBulk, restaurarPedido, restaurarPedidosBulk } from '../../services/api'
 import { useAdminBrand } from '../../context/AdminBrandContext'
@@ -57,10 +57,8 @@ export default function AdminPedidos() {
   }, [])
 
   // Filtrar por marca y búsqueda
-  const filterByBrandAndSearch = (list) => {
+    const filterByBrandAndSearch = useCallback((list) => {
     const term = search.trim().toLowerCase()
-
-    // Multi-marca: filtrar por la marca activa del selector
     const porMarca = list.filter(p => {
       const brandSlug = p.brand?.slug || 'fit'
       return brandSlug === activeBrand
@@ -74,10 +72,10 @@ export default function AdminPedidos() {
       const cliente = p.datosEnvio?.nombreCompleto?.toLowerCase() || ''
       return orderNumber.includes(term) || id.includes(term) || cliente.includes(term)
     })
-  }
+  }, [search, activeBrand])
 
-  const filteredPedidos = useMemo(() => filterByBrandAndSearch(pedidos), [pedidos, search, activeBrand])
-  const filteredDeleted = useMemo(() => filterByBrandAndSearch(deletedPedidos), [deletedPedidos, search, activeBrand])
+  const filteredPedidos = useMemo(() => filterByBrandAndSearch(pedidos), [pedidos, filterByBrandAndSearch])
+  const filteredDeleted = useMemo(() => filterByBrandAndSearch(deletedPedidos), [deletedPedidos, filterByBrandAndSearch])
 
   // Cuadro inferior: solo pagados de la lista activa
   const pedidosPagados = useMemo(() => {

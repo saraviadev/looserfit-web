@@ -80,7 +80,6 @@ export default function Checkout() {
     if (!dniClean || dniClean.length < 7 || dniClean.length > 8) {
       return setError('DNI inválido: ingresa un documento de 7 u 8 dígitos numéricos para Correo Argentino.')
     }
-    form.dni = dniClean
 
     const localidad = form.localidad.trim()
     const direccionSucursal = form.direccionSucursal.trim()

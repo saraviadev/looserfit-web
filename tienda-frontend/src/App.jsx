@@ -153,9 +153,9 @@ function BrandRoutes({ pathPrefix }) {
   // Soporte de bypass DEV/Admin
   const params = new URLSearchParams(location.search)
   if (params.get('preview') === 'dev') {
-    try { sessionStorage.setItem('looser_preview_dev', 'true') } catch {}
+    try { sessionStorage.setItem('looser_preview_dev', 'true') } catch { /* ignore */ }
   } else if (params.get('preview') === 'off') {
-    try { sessionStorage.removeItem('looser_preview_dev') } catch {}
+    try { sessionStorage.removeItem('looser_preview_dev') } catch { /* ignore */ }
   }
   const hasPreviewSession = typeof window !== 'undefined' && sessionStorage.getItem('looser_preview_dev') === 'true'
   const isDevBypass = Boolean(user?.isAdmin || hasPreviewSession || params.get('preview') === 'dev')

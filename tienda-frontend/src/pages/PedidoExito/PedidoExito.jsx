@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, Link } from 'react-router-dom'
 import { getPedidoById, subirComprobante, registerFromOrder } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
+import { useToast } from '../../context/ToastContext'
 import './PedidoExito.css'
 
 export default function PedidoExito() {

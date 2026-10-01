@@ -41,7 +41,7 @@ export default function Navbar() {
     setNotificationsOpen(nextState)
     if (nextState) {
       const now = new Date().toISOString()
-      try { localStorage.setItem('looserfit_last_seen_notif', now) } catch {}
+      try { localStorage.setItem('looserfit_last_seen_notif', now) } catch { /* ignore */ }
       setLastSeenNotif(now)
     }
   }
