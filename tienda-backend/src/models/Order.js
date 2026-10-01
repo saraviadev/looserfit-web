@@ -30,6 +30,7 @@ const orderSchema = new mongoose.Schema({
         localidad: { type: String, required: true },
         email: { type: String, required: true },
         telefono: { type: String, required: true },
+        dni: { type: String, trim: true, default: null }, // Requisito de despacho postal Correo Argentino
         
         // Campos específicos según el tipo
         direccionSucursal: { type: String }, // Para sucursal

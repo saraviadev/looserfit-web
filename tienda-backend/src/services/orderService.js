@@ -51,6 +51,17 @@ async function getNextOrderNumber() {
 
 const createOrder = async (orderData) => {
     const { productos = [], tipoEnvio, datosEnvio, usuario, brand } = orderData;
+    // Validación y sanitización de DNI para despacho postal
+    if (datosEnvio) {
+        if (datosEnvio.dni) {
+            const cleanDni = String(datosEnvio.dni).replace(/\D/g, '');
+            if (cleanDni.length >= 7 && cleanDni.length <= 8) {
+                datosEnvio.dni = cleanDni;
+            } else {
+                throw new Error('DNI inválido: debe contener 7 u 8 dígitos numéricos.');
+            }
+        }
+    }
     
     const productosPedido = [];
     let totalCalculado = 0;

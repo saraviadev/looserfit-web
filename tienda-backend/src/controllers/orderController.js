@@ -101,7 +101,14 @@ const getOrderByToken = async (req, res) => {
     try {
         const order = await orderService.getOrderByToken(req.params.token);
         if (!order) return res.status(404).json({ mensaje: 'Link de seguimiento inválido o expirado' });
-        res.json(order);
+        
+        const orderObj = order.toObject ? order.toObject() : { ...order };
+        // Minimización de datos: enmascarar DNI en respuesta pública de tracking
+        if (orderObj.datosEnvio && orderObj.datosEnvio.dni) {
+            const rawDni = String(orderObj.datosEnvio.dni);
+            orderObj.datosEnvio.dni = rawDni.length > 4 ? '***' + rawDni.slice(-4) : '***';
+        }
+        res.json(orderObj);
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al consultar seguimiento', error: error.message });
     }

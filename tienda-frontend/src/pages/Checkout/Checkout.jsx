@@ -29,6 +29,7 @@ export default function Checkout() {
     direccionSucursal: '',
     email: '',
     telefono: '',
+    dni: '',
     calleNumero: '',
     pisoDepto: '',
     codigoPostal: '',
@@ -75,6 +76,11 @@ export default function Checkout() {
     e.preventDefault()
     setError('')
     if (!items.length) return setError('No hay productos en el carrito.')
+    const dniClean = (form.dni || '').replace(/\D/g, '')
+    if (!dniClean || dniClean.length < 7 || dniClean.length > 8) {
+      return setError('DNI inválido: ingresa un documento de 7 u 8 dígitos numéricos para Correo Argentino.')
+    }
+    form.dni = dniClean
 
     const localidad = form.localidad.trim()
     const direccionSucursal = form.direccionSucursal.trim()
@@ -143,6 +149,7 @@ export default function Checkout() {
                 <input name="nombreCompleto" placeholder="Nombre completo" value={form.nombreCompleto} onChange={handleChange} required />
                 <input name="email" type="email" placeholder="Email" value={form.email} onChange={handleChange} required />
                 <input name="telefono" placeholder="Teléfono" value={form.telefono} onChange={handleChange} required />
+                <input name="dni" placeholder="DNI (para Correo Argentino)" value={form.dni} onChange={handleChange} required />
               </div>
 
               <div className="checkout-radio">
