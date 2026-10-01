@@ -2,12 +2,71 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <!-- BRANDING: Update favicon and title here -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- Branding & Favicon -->
     <link rel="icon" type="image/png" href="/logo3.0.png" />
     <link rel="apple-touch-icon" href="/logo3.0.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="description" content="E-commerce Store - Custom urban fashion." />
-    <title>Store — Tienda Online</title>
+
+    <!-- SEO Primario -->
+    <title>looserfit.com</title>
+    <meta name="title" content="looserfit.com" />
+    <meta name="description" content="Looser Fit — Indumentaria urbana, ropa oversize y streetwear de alta calidad en Argentina. Envíos a todo el país por Correo Argentino." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://www.looserfit.com" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.looserfit.com" />
+    <meta property="og:title" content="looserfit.com" />
+    <meta property="og:description" content="Looser Fit — Indumentaria urbana, ropa oversize y streetwear de alta calidad en Argentina. Envíos a todo el país." />
+    <meta property="og:image" content="https://www.looserfit.com/logo3.0.png" />
+    <meta property="og:site_name" content="Looser Fit" />
+    <meta property="og:locale" content="es_AR" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://www.looserfit.com" />
+    <meta name="twitter:title" content="looserfit.com" />
+    <meta name="twitter:description" content="Looser Fit — Indumentaria urbana, ropa oversize y streetwear de alta calidad en Argentina." />
+    <meta name="twitter:image" content="https://www.looserfit.com/logo3.0.png" />
+
+    <!-- Structured Data (JSON-LD) - Schema.org ClothingStore & WebSite -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://www.looserfit.com/#website",
+          "url": "https://www.looserfit.com",
+          "name": "Looser Fit",
+          "description": "Indumentaria urbana y streetwear en Argentina",
+          "inLanguage": "es-AR"
+        },
+        {
+          "@type": "ClothingStore",
+          "@id": "https://www.looserfit.com/#store",
+          "name": "Looser Fit",
+          "url": "https://www.looserfit.com",
+          "logo": "https://www.looserfit.com/logo3.0.png",
+          "image": "https://www.looserfit.com/logo3.0.png",
+          "description": "Tienda oficial de indumentaria urbana y oversize en Argentina.",
+          "address": {
+            "@type": "PostalAddress",
+            "addressCountry": "AR",
+            "addressRegion": "Buenos Aires"
+          },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer service",
+            "email": "hola@looserfit.com",
+            "availableLanguage": "Spanish"
+          }
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

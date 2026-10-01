@@ -266,7 +266,13 @@ export default function Footer() {
 
         {/* Copyright & Créditos */}
         <div className="footer-content">
-          <p>© {new Date().getFullYear()} {config.name} — Todos los derechos reservados · República Argentina</p>
+          <p>© {new Date().getFullYear()} {config.name} ({config.contact?.razonSocial || 'Looser Fit'}) — Todos los derechos reservados · República Argentina</p>
+          <p className="footer__fiscal-info" style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.3rem' }}>
+            CUIT: {config.contact?.cuit || '[EN TRÁMITE]'} · Domicilio: {config.contact?.address} · 
+            <a href="https://www.argentina.gob.ar/produccion/defensadelconsumidor/formulario" target="_blank" rel="noreferrer" className="defensa-consumidor-link" style={{ marginLeft: '0.4rem', textDecoration: 'underline' }}>
+              Defensa del Consumidor (Ley 24.240) ↗
+            </a>
+          </p>
           <p className="credit">
             Creado por{' '}
             <a href="https://instagram.com/saravia.devv" target="_blank" rel="noreferrer" className="credit__link">

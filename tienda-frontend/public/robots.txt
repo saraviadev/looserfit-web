@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /checkout
+Disallow: /mi-cuenta
+Disallow: /mis-pedidos
+
+Sitemap: https://www.looserfit.com/sitemap.xml

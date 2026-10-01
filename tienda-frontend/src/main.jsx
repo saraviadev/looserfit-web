@@ -7,7 +7,7 @@ import { CartProvider } from './context/CartContext.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { getBrandSlug } from './services/api'
 
-document.title = 'looserfit'
+document.title = 'looserfit.com'
 
 // El slug se detecta desde la URL al cargar la página
 // /sport/* → 'sport'  |  /* → 'fit'
