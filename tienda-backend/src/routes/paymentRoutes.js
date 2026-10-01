@@ -83,9 +83,13 @@ router.post('/create-preference', async (req, res) => {
             notification_url: `${process.env.BACKEND_URL || 'https://looserfit-api.onrender.com'}/api/payments/webhook`
         };
 
-        console.log('Enviando body a Mercado Pago:', JSON.stringify(body, null, 2));
+        // Idempotency key única para la creación de preferencia de este pedido
+        const idempotencyKey = `pref_${orderId}_${pedido.total}_${pedido.updatedAt ? new Date(pedido.updatedAt).getTime() : Date.now()}`;
 
-        const result = await preference.create({ body });
+        const result = await preference.create({
+            body,
+            requestOptions: { idempotencyKey }
+        });
 
         res.json({ id: result.id, init_point: result.init_point });
     } catch (error) {
@@ -94,7 +98,7 @@ router.post('/create-preference', async (req, res) => {
     }
 });
 
-// Webhook para recibir notificaciones de Mercado Pago
+// Webhook para recibir notificaciones de Mercado Pago con protección estricta contra duplicados
 router.post('/webhook', async (req, res) => {
     const topic = req.query.topic || req.query.type || req.body.type || req.body.topic;
     const paymentId = req.query.id || req.query['data.id'] || req.body.id || req.body['data.id'] || req.body.data?.id;
@@ -125,46 +129,96 @@ router.post('/webhook', async (req, res) => {
             }
 
             if (paymentData.status === 'approved') {
-                const pedido = await Order.findById(orderId);
-                if (!pedido) {
-                    console.error(`[Webhook MP] ❌ Orden ${orderId} no encontrada en la DB`);
-                    return res.sendStatus(200);
-                }
+                // ATOMIC CLAIM: Solo una solicitud simultánea puede hacer la transición a 'Pagado'
+                // y asociar el mpPaymentId. Toda entrega duplicada devolverá null en claimedOrder.
+                const claimedOrder = await Order.findOneAndUpdate(
+                    {
+                        _id: orderId,
+                        estado: { $nin: ['Pagado', 'Empaquetado', 'Enviado', 'Entregado'] },
+                        mpPaymentId: { $ne: String(paymentId) }
+                    },
+                    {
+                        $set: {
+                            estado: 'Pagado',
+                            mpPaymentId: String(paymentId),
+                            metodoPago: 'mercadopago',
+                            mpStatus: paymentData.status,
+                            paymentProcessedAt: new Date()
+                        }
+                    },
+                    { returnDocument: 'after' }
+                );
 
-                if (pedido.estado !== 'Pagado') {
-                    // --- DESCONTAR STOCK AL CONFIRMAR PAGO ---
-                    for (const item of pedido.productos) {
-                        const updated = await Product.findOneAndUpdate(
+                if (claimedOrder) {
+                    console.log(`[Webhook MP] Transición atómica exitosa para orden ${orderId}. Descontando stock de forma atómica con rollback...`);
+
+                    // Descuento atómico de stock con compensación (rollback) ante fallas parciales
+                    const stockDecrements = [];
+                    let stockFailure = false;
+
+                    for (const item of claimedOrder.productos) {
+                        const updatedProduct = await Product.findOneAndUpdate(
                             { _id: item.productoId, stock: { $gte: item.cantidad } },
                             { $inc: { stock: -item.cantidad } },
-                            { new: true }
+                            { returnDocument: 'after' }
                         );
-                        
-                        if (!updated) {
-                           console.error(`❌ [Webhook MP] Error critico: No hay stock suficiente para ${item.nombre} al confirmar pago de orden ${orderId}`);
+
+                        if (updatedProduct) {
+                            stockDecrements.push({ productoId: item.productoId, cantidad: item.cantidad });
+                        } else {
+                            stockFailure = true;
+                            console.error(`❌ [Webhook MP] Error crítico: Stock insuficiente para producto ${item.nombre} en pedido ${orderId}`);
+                            break;
                         }
                     }
 
-                    const orderService = require('../services/orderService');
-                    await orderService.updateOrderStatus(orderId, 'Pagado');
+                    if (stockFailure) {
+                        // Rollback: restaurar los productos que llegaron a descontarse
+                        for (const dec of stockDecrements) {
+                            await Product.findByIdAndUpdate(dec.productoId, {
+                                $inc: { stock: dec.cantidad }
+                            });
+                        }
+                        await Order.findByIdAndUpdate(orderId, {
+                            stockAlert: 'Stock insuficiente al momento de acreditar el pago'
+                        });
+                        console.warn(`⚠️ [Webhook MP] Rollback de stock completado para orden ${orderId}`);
+                    }
+
+                    // Notificaciones por email (asincrónicas, no bloquean respuesta 200)
+                    const { enviarEmailPagoAprobado, enviarEmailNotificacionAdmin, enviarConReintentos } = require('../config/email');
+                    if (enviarEmailPagoAprobado) {
+                        enviarEmailPagoAprobado(claimedOrder.datosEnvio, claimedOrder).catch(console.error);
+                    }
+                    if (enviarEmailNotificacionAdmin && enviarConReintentos) {
+                        enviarConReintentos(() => enviarEmailNotificacionAdmin(claimedOrder), 3, 'Notificación admin').catch(console.error);
+                    }
+
                     console.log(`✅ [Webhook MP] Pedido ${orderId} marcado como Pagado y stock descontado.`);
                 } else {
-                    console.log(`[Webhook MP] Pedido ${orderId} ya estaba en estado Pagado, ignorando duplicado.`);
+                    // Notificación duplicada o pedido ya en estado avanzado
+                    console.log(`[Webhook MP] Pedido ${orderId} ya estaba en estado Pagado/procesado para paymentId ${paymentId}, ignorando duplicado.`);
                 }
             } else if (['pending', 'in_process'].includes(paymentData.status)) {
+                await Order.findByIdAndUpdate(orderId, {
+                    mpPaymentId: String(paymentId),
+                    mpStatus: paymentData.status
+                });
                 console.log(`⏳ [Webhook MP] Pedido ${orderId} está pendiente de acreditación (${paymentData.status_detail})`);
             } else {
+                await Order.findByIdAndUpdate(orderId, {
+                    mpPaymentId: String(paymentId),
+                    mpStatus: paymentData.status
+                });
                 console.log(`❌ [Webhook MP] Pedido ${orderId} falló o fue rechazado: ${paymentData.status}`);
             }
         } else {
-            // MP envía otros tipos de notificaciones (merchant_order, etc) que no necesitamos procesar
             console.log(`[Webhook MP] Notificación ignorada: topic=${topic}, id=${paymentId}`);
         }
 
         res.sendStatus(200);
     } catch (error) {
         console.error(`[Webhook MP] ❌ Error procesando webhook:`, error.message);
-        // Devolver 500 para que Mercado Pago REINTENTE el webhook
         res.sendStatus(500);
     }
 });

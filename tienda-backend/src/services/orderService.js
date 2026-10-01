@@ -129,8 +129,34 @@ const getOrderByToken = async (token) => {
     return await Order.findOne({ trackingToken: token });
 };
 
+// Máquina de Estados Finitos (FSM) para órdenes
+const VALID_TRANSITIONS = {
+    Pendiente: ['Pagado', 'Cancelado'],
+    Pagado: ['Empaquetado', 'Cancelado'],
+    Empaquetado: ['Enviado', 'Cancelado'],
+    Enviado: ['Entregado', 'Cancelado'],
+    Entregado: [],
+    Cancelado: []
+};
+
 const updateOrderStatus = async (id, estado) => {
-    const pedido = await Order.findByIdAndUpdate(id, { estado }, { new: true });
+    const pedidoActual = await Order.findById(id);
+    if (!pedidoActual) return null;
+
+    // Idempotencia: si ya está en ese estado, no re-procesar ni disparar emails duplicados
+    if (pedidoActual.estado === estado) {
+        return pedidoActual;
+    }
+
+    // Validación estricta de transiciones
+    const permitidas = VALID_TRANSITIONS[pedidoActual.estado] || [];
+    if (!permitidas.includes(estado)) {
+        const error = new Error(`Transición de estado inválida: no se puede pasar de '${pedidoActual.estado}' a '${estado}'`);
+        error.statusCode = 400;
+        throw error;
+    }
+
+    const pedido = await Order.findByIdAndUpdate(id, { estado }, { returnDocument: 'after' });
     
     if (pedido) {
         const { datosEnvio } = pedido;
@@ -141,6 +167,7 @@ const updateOrderStatus = async (id, estado) => {
             const { enviarEmailPagoAprobado } = require('../config/email');
             enviarEmailPagoAprobado(datosEnvio, pedido).catch(console.error);
             // Notificar al admin con reintentos — si falla no se pierde la notificación
+            const { enviarConReintentos, enviarEmailNotificacionAdmin } = require('../config/email');
             enviarConReintentos(() => enviarEmailNotificacionAdmin(pedido), 3, 'Notificación admin');
         }
     }

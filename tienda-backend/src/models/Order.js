@@ -44,6 +44,12 @@ const orderSchema = new mongoose.Schema({
     usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Opcional: Para usuarios registrados
     trackingToken: { type: String, required: true, unique: true }, // Token para seguimiento público sin login
     trackingNumber: { type: String }, // Número de seguimiento Correo Argentino
+    // Campos de Pago / Mercado Pago (Persistencia e Idempotencia F3)
+    metodoPago: { type: String, default: null },
+    mpPaymentId: { type: String, default: null, index: true },
+    mpStatus: { type: String, default: null },
+    paymentProcessedAt: { type: Date, default: null },
+    stockAlert: { type: String, default: null },
 
     // Soft delete — permite restaurar pedidos eliminados por error
     deleted: { type: Boolean, default: false, index: true },
