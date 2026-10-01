@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getProductos, eliminarProducto, togglePublicadoProducto, toggleDropProducto, bulkToggleDropProductos } from '../../services/api'
 import { useAdminBrand } from '../../context/AdminBrandContext'
+import { optimizeImage } from '../../utils/imageOptimizer'
 import './Admin.css'
 
 export default function AdminProductos() {

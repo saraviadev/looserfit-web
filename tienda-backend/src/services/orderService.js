@@ -1,4 +1,5 @@
 const Order = require('../models/Order');
+const Counter = require('../models/Counter');
 const Product = require('../models/product');
 const crypto = require('crypto');
 const { enviarEmailPedido, enviarEmailSeguimiento, enviarEmailNotificacionAdmin } = require('../config/email');
@@ -24,6 +25,29 @@ const enviarConReintentos = async (fn, maxIntentos, label = 'Email') => {
     }
     return false;
 };
+
+// Inicializa el contador con el máximo numérico existente si aún no existe
+async function initOrderCounter() {
+    const existing = await Counter.findById('orderNumber');
+    if (!existing) {
+        const orders = await Order.find({}, { orderNumber: 1 }).lean();
+        let max = 0;
+        for (const o of orders) {
+            const m = (o.orderNumber || '').match(/^#?(\d+)$/);
+            if (m) {
+                const n = parseInt(m[1], 10);
+                if (n > max) max = n;
+            }
+        }
+        await Counter.initCounter('orderNumber', max);
+    }
+}
+
+async function getNextOrderNumber() {
+    await initOrderCounter();
+    const nextSeq = await Counter.getNextSequence('orderNumber');
+    return `#${String(nextSeq).padStart(3, '0')}`;
+}
 
 const createOrder = async (orderData) => {
     const { productos = [], tipoEnvio, datosEnvio, usuario, brand } = orderData;
@@ -59,14 +83,7 @@ const createOrder = async (orderData) => {
     // El stock ya no se descuenta aquí, sino en el webhook tras el pago.
     // Solo mantenemos la verificación inicial de stock arriba.
 
-    let nextNum = (await Order.countDocuments()) + 1;
-    let orderNumber = `#${String(nextNum).padStart(3, '0')}`;
-    
-    // Verificación de unicidad para evitar colisiones si se borraron pedidos
-    while (await Order.findOne({ orderNumber })) {
-        nextNum++;
-        orderNumber = `#${String(nextNum).padStart(3, '0')}`;
-    }
+    const orderNumber = await getNextOrderNumber();
     const shippingCost = tipoEnvio === 'domicilio' ? 11000 : 7500;
     const totalFinal = totalCalculado + shippingCost;
     const trackingToken = crypto.randomBytes(16).toString('hex');
@@ -158,8 +175,6 @@ const deleteOrder = async (id) => {
 
 // Soft delete masivo: marcar como eliminados sin borrar datos ni comprobantes
 const bulkDeleteOrders = async (ids) => {
-    restoreOrder,
-    bulkRestoreOrders
     return await Order.updateMany(
         { _id: { $in: ids } },
         { deleted: true, deletedAt: new Date() }
@@ -193,5 +208,7 @@ module.exports = {
     updateTracking,
     uploadComprobante,
     deleteOrder,
-    bulkDeleteOrders
+    bulkDeleteOrders,
+    restoreOrder,
+    bulkRestoreOrders
 };
