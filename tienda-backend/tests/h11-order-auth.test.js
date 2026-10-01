@@ -108,13 +108,13 @@ describe('Fase 2.1 — H11: Control de Acceso y Autorización en Pedidos (getOrd
     expect(res.body.mensaje).toMatch(/No tenés permiso/);
   });
 
-  test('2b. Usuario logueado no admin puede consultar pedido sin usuario (compatibilidad con pedidos de invitado y huérfanos sin 403)', async () => {
+  test('2b. Usuario logueado no admin sin guest token recibe 403 al consultar pedido de invitado (SEC-01)', async () => {
     const res = await request(app)
       .get(`/api/orders/${guestOrder._id}`)
       .set('Authorization', `Bearer ${otherToken}`);
 
-    expect(res.status).toBe(200);
-    expect(res.body._id).toBe(guestOrder._id.toString());
+    expect(res.status).toBe(403);
+    expect(res.body.mensaje).toMatch(/requiere token de invitado/i);
   });
 
   test('3. Admin accede: Administrador puede consultar cualquier pedido (registrado o invitado)', async () => {
@@ -133,13 +133,19 @@ describe('Fase 2.1 — H11: Control de Acceso y Autorización en Pedidos (getOrd
     expect(resGuestOrder.body._id).toBe(guestOrder._id.toString());
   });
 
-  test('4. Invitado no rompe: Consulta de pedido sin usuario y sin token devuelve 200', async () => {
-    const res = await request(app)
+  test('4. Invitado requiere token (SEC-01): Consulta sin token devuelve 403, con X-Guest-Token devuelve 200', async () => {
+    const resSinToken = await request(app)
       .get(`/api/orders/${guestOrder._id}`);
 
-    expect(res.status).toBe(200);
-    expect(res.body._id).toBe(guestOrder._id.toString());
-    expect(res.body.orderNumber).toBe('#102');
+    expect(resSinToken.status).toBe(403);
+
+    const resConToken = await request(app)
+      .get(`/api/orders/${guestOrder._id}`)
+      .set('X-Guest-Token', guestOrder.trackingToken);
+
+    expect(resConToken.status).toBe(200);
+    expect(resConToken.body._id).toBe(guestOrder._id.toString());
+    expect(resConToken.body.orderNumber).toBe('#102');
   });
 
   test('5. No autenticado recibe 401 si intenta ver un pedido de usuario registrado sin token', async () => {

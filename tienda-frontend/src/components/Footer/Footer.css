@@ -1,4 +1,4 @@
-.footer {
+﻿.footer {
   background: var(--black);
   color: var(--white);
   padding: 4rem 0 0;
@@ -8,9 +8,9 @@
 
 .footer__inner {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1.5fr 1fr;
-  gap: 3rem;
-  padding-bottom: 3rem;
+  grid-template-columns: 1.8fr 1fr 1.2fr 1.2fr 1.4fr;
+  gap: 2.5rem;
+  padding-bottom: 2.5rem;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
@@ -50,6 +50,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
+  padding: 0;
+  margin: 0;
 }
 
 .footer__nav a {
@@ -98,6 +100,16 @@
   color: var(--white);
 }
 
+.footer__info-btn--highlight {
+  color: #e0e0e0;
+  font-weight: 500;
+}
+
+.footer__info-btn--highlight:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
 .footer__soporte {
   font-size: 0.85rem;
   color: rgba(255,255,255,0.6);
@@ -105,14 +117,88 @@
   margin: 0;
 }
 
-.footer__soporte a {
+.footer__dm-link {
   color: var(--white);
   text-decoration: underline;
+  font-weight: 700;
+  transition: opacity var(--transition);
 }
 
+.footer__dm-link:hover {
+  opacity: 0.7;
+}
+
+/* ── BARRA DESTACADA: BOTÓN DE ARREPENTIMIENTO (Res. 424/2020) ── */
+.footer__arrepentimiento-bar {
+  margin: 2.2rem 0 1rem;
+  padding: 1.2rem 1.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.footer__arrepentimiento-info {
+  flex: 1;
+  min-width: 260px;
+}
+
+.footer__arrepentimiento-tag {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.footer__arrepentimiento-desc {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.footer__arrepentimiento-action {
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  padding: 0.75rem 1.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  border-radius: 2px;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.footer__arrepentimiento-action:hover {
+  background: #e5e5e5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.15);
+}
+
+.footer__arrepentimiento-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* ── COPYRIGHT Y CRÉDITOS ── */
 .footer-content {
   background: #0a0a0a;
-  padding: 40px 20px;
+  padding: 30px 20px;
   text-align: center;
   font-size: 14px;
   max-width: 1200px;
@@ -128,32 +214,6 @@
   margin-top: 10px;
   font-size: 13px;
   color: #777;
-}
-
-.footer-content a {
-  color: #fff;
-  text-decoration: none;
-  position: relative;
-  transition: color 0.3s ease;
-}
-
-.footer-content a::after {
-  content: "";
-  position: absolute;
-  width: 0%;
-  height: 1px;
-  left: 0;
-  bottom: -2px;
-  background: #fff;
-  transition: width 0.3s ease;
-}
-
-.footer-content a:hover {
-  color: #fff;
-}
-
-.footer-content a:hover::after {
-  width: 100%;
 }
 
 .credit__link {
@@ -181,56 +241,320 @@
   opacity: 1;
 }
 
+/* ── MODAL LEGALES / ARREPENTIMIENTO ── */
 .footer-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
-  z-index: 200;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(5px);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 1.5rem;
 }
 
 .footer-modal {
-  background: var(--bg);
-  border: var(--border);
-  padding: 2rem;
-  max-width: 420px;
+  background: #111111;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  max-width: 640px;
   width: 100%;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+  animation: footerModalFadeIn 0.2s ease-out;
 }
 
-.footer-modal h4 {
-  margin-bottom: 1rem;
-  color: var(--black);
+@keyframes footerModalFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-.footer-modal p {
-  margin-bottom: 1.2rem;
-  font-size: 0.9rem;
-  color: var(--black);
+.footer-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1.4rem 1.6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #161616;
 }
 
-.footer__dm-link {
-  color: var(--white);
-  text-decoration: underline;
+.footer-modal__badge {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #c8b89a;
+  font-weight: 600;
+  display: block;
+}
+
+.footer-modal__title {
+  font-size: 1.25rem;
   font-weight: 700;
-  transition: opacity var(--transition);
+  margin: 0.25rem 0 0;
+  color: #ffffff;
 }
 
-.footer__dm-link:hover {
-  opacity: 0.7;
+.footer-modal__close {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 1.3rem;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  line-height: 1;
+  transition: color 0.2s;
 }
 
+.footer-modal__close:hover {
+  color: #ffffff;
+}
+
+.footer-modal__body {
+  padding: 1.6rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.footer-modal__footer {
+  padding: 1rem 1.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: flex-end;
+  background: #161616;
+}
+
+/* Documentos legales */
+.legal-doc__section {
+  margin-bottom: 1.4rem;
+}
+
+.legal-doc__section:last-child {
+  margin-bottom: 0;
+}
+
+.legal-doc__heading {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.4rem;
+}
+
+.legal-doc__text {
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: rgba(255, 255, 255, 0.72);
+  white-space: pre-line;
+  margin: 0;
+}
+
+/* Formulario de arrepentimiento */
+.arrepentimiento-form__intro {
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #c8b89a;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.3rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #ddd;
+  border-radius: 0 4px 4px 0;
+}
+
+.arrepentimiento-form__intro p {
+  margin: 0;
+}
+
+.arrepentimiento-error {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.arrepentimiento-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.arrepentimiento-field {
+  margin-bottom: 0.9rem;
+}
+
+.arrepentimiento-field label {
+  display: block;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+  margin-bottom: 0.4rem;
+  font-family: var(--font-mono);
+}
+
+.arrepentimiento-field input,
+.arrepentimiento-field select,
+.arrepentimiento-field textarea {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  background: #090909;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.arrepentimiento-field input:focus,
+.arrepentimiento-field select:focus,
+.arrepentimiento-field textarea:focus {
+  border-color: #ffffff;
+}
+
+.arrepentimiento-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 1.4rem;
+}
+
+/* Pantalla de éxito de arrepentimiento */
+.arrepentimiento-success {
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+}
+
+.arrepentimiento-success__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
+}
+
+.arrepentimiento-success h4 {
+  font-size: 1.25rem;
+  color: #ffffff;
+  margin: 0 0 0.6rem;
+}
+
+.arrepentimiento-success__text {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.arrepentimiento-success__code-box {
+  background: #080808;
+  border: 1px dashed rgba(255, 255, 255, 0.25);
+  padding: 1.2rem;
+  margin: 1.4rem 0;
+  border-radius: 6px;
+}
+
+.arrepentimiento-success__code-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.5);
+  display: block;
+}
+
+.arrepentimiento-success__code {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  color: #4ade80;
+  display: block;
+  letter-spacing: 0.08em;
+  margin-top: 0.3rem;
+}
+
+.arrepentimiento-success__notice {
+  font-size: 0.84rem;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Botones estándar */
+.btn--secondary {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.65rem 1.2rem;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn--secondary:hover {
+  color: #fff;
+  border-color: #fff;
+}
+
+.btn--primary {
+  background: #fff;
+  color: #000;
+  border: none;
+  padding: 0.65rem 1.4rem;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn--primary:hover {
+  background: #e5e5e5;
+}
+
+/* Responsividad */
 @media (max-width: 900px) {
   .footer__inner {
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
   }
+  
+  .footer__arrepentimiento-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .footer__arrepentimiento-action {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
-@media (max-width: 500px) {
+@media (max-width: 550px) {
   .footer__inner {
     grid-template-columns: 1fr;
+  }
+
+  .arrepentimiento-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 }

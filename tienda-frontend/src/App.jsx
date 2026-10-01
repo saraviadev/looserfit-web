@@ -31,6 +31,7 @@ import TrackingPedido from './pages/Tracking/TrackingPedido'
 import NotFound from './pages/NotFound/NotFound'
 import PendingReceiptAlert from './components/PendingReceiptAlert/PendingReceiptAlert'
 import { getHomeContent } from './services/api'
+import { useAuth } from './context/AuthContext'
 
 // ─── Pantalla de Coming Soon ───────────────────────────────────────────────
 
@@ -88,11 +89,11 @@ function ComingSoonScreen({ launchDate, message, subtitle, onAuthClick }) {
 
 // ─── Gate público (maneja coming soon por marca) ───────────────────────────
 
-function PublicGate({ children, homeLoading, comingSoon, onAuthClick }) {
+function PublicGate({ children, homeLoading, comingSoon, onAuthClick, isDevBypass }) {
   if (homeLoading) return <div style={{ height: '100vh', background: '#0a0a0a' }} />;
   const active = Boolean(comingSoon?.enabled && comingSoon?.launchDate && new Date(comingSoon.launchDate) > new Date())
   
-  if (active) {
+  if (active && !isDevBypass) {
     return (
       <>
         <Navbar />
@@ -109,18 +110,55 @@ function PublicGate({ children, homeLoading, comingSoon, onAuthClick }) {
     )
   }
   
-  return children
+  return (
+    <>
+      {active && isDevBypass && (
+        <div style={{
+          position: 'fixed',
+          bottom: '12px',
+          right: '12px',
+          zIndex: 99999,
+          background: 'rgba(20, 20, 20, 0.95)',
+          color: '#e0e0e0',
+          border: '1px solid #444',
+          borderRadius: '8px',
+          padding: '6px 12px',
+          fontSize: '11px',
+          fontFamily: 'system-ui, sans-serif',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(6px)'
+        }}>
+          <span>🛠️ Modo DEV (Lanzamiento Omitido)</span>
+        </div>
+      )}
+      {children}
+    </>
+  )
 }
 
 // ─── Rutas de una marca (componente reutilizable) ──────────────────────────
 // pathPrefix: '' para Fit, '/sport' para Sport
 
 function BrandRoutes({ pathPrefix }) {
+  const { user } = useAuth()
   const { brand, loading: brandLoading } = useBrand()
   const [homeContent, setHomeContent] = useState(null)
   const [homeLoading, setHomeLoading] = useState(true)
   const [authOpen, setAuthOpen] = useState(false)
   const location = useLocation()
+
+  // Soporte de bypass DEV/Admin
+  const params = new URLSearchParams(location.search)
+  if (params.get('preview') === 'dev') {
+    try { sessionStorage.setItem('looser_preview_dev', 'true') } catch {}
+  } else if (params.get('preview') === 'off') {
+    try { sessionStorage.removeItem('looser_preview_dev') } catch {}
+  }
+  const hasPreviewSession = typeof window !== 'undefined' && sessionStorage.getItem('looser_preview_dev') === 'true'
+  const isDevBypass = Boolean(user?.isAdmin || hasPreviewSession || params.get('preview') === 'dev')
 
   // Cargar el HomeContent de esta marca usando el brand slug del contexto
   useEffect(() => {
@@ -153,7 +191,7 @@ function BrandRoutes({ pathPrefix }) {
   // Bloquear scroll en coming soon
   useEffect(() => {
     const isAdminRoute = location.pathname.startsWith('/admin')
-    if (isLaunchActive && !isAdminRoute) {
+    if (isLaunchActive && !isAdminRoute && !isDevBypass) {
       document.body.style.overflow = 'hidden'
       document.documentElement.style.overflow = 'hidden'
     } else {
@@ -164,7 +202,7 @@ function BrandRoutes({ pathPrefix }) {
       document.body.style.overflow = ''
       document.documentElement.style.overflow = ''
     }
-  }, [isLaunchActive, location.pathname])
+  }, [isLaunchActive, location.pathname, isDevBypass])
 
   // Abrir auth si viene en el state de navegación
   useEffect(() => {
@@ -174,7 +212,7 @@ function BrandRoutes({ pathPrefix }) {
     }
   }, [location.state?.openAuth])
 
-  const publicGateProps = { homeLoading, comingSoon, onAuthClick: () => setAuthOpen(true) }
+  const publicGateProps = { homeLoading, comingSoon, onAuthClick: () => setAuthOpen(true), isDevBypass }
   const p = pathPrefix // shorthand
 
   return (

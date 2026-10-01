@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { upload } = require('../config/storage');
 const orderController = require('../controllers/orderController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 const { detectBrand } = require('../middleware/brandMiddleware');
@@ -17,7 +16,7 @@ router.get('/all', protect, adminOnly, orderController.getAllOrders);
 // --- SEGUIMIENTO PÚBLICO (Sin Login) ---
 router.get('/track/:token', orderController.getOrderByToken);
 
-// --- VER UN PEDIDO POR ID ---
+// --- VER UN PEDIDO POR ID (Protegido por SEC-01) ---
 router.get('/:id', orderController.getOrderById);
 
 // --- CAMBIAR ESTADO DEL PEDIDO (Solo Admin) ---
@@ -26,8 +25,13 @@ router.patch('/:id/estado', protect, adminOnly, orderController.updateStatus);
 // --- ACTUALIZAR NÚMERO DE SEGUIMIENTO (Solo Admin) ---
 router.patch('/:id/tracking', protect, adminOnly, orderController.updateTracking);
 
-// --- SUBIR COMPROBANTE DE PAGO ---
-router.post('/upload-comprobante/:id', upload.single('comprobante'), orderController.uploadComprobante);
+// --- SUBIR COMPROBANTE DE PAGO (Protegido por SEC-03) ---
+router.post(
+    '/upload-comprobante/:id',
+    orderController.verifyOrderUploadAuth,
+    orderController.uploadComprobanteMiddleware,
+    orderController.uploadComprobante
+);
 
 // --- ELIMINAR UN PEDIDO (Solo Admin) ---
 router.delete('/:id', protect, adminOnly, orderController.deleteOrder);
