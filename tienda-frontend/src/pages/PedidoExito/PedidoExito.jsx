@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext'
 import './PedidoExito.css'
 
 export default function PedidoExito() {
+  const { toast } = useToast();
   const location = useLocation()
   const { state } = location
   const [pedido, setPedido] = useState(state?.pedido || null)
@@ -41,7 +42,7 @@ export default function PedidoExito() {
   }, [location.search, pedido])
 
   const handleUpload = async () => {
-    if (!file) return alert('Selecciona un archivo primero')
+    if (!file) return toast.warning('Selecciona un archivo primero')
     if (!pedido) return setErrorUpload('No se pudo identificar el pedido.')
 
     setUploading(true)

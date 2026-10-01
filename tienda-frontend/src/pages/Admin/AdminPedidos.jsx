@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getPedidos, eliminarPedido, eliminarPedidosBulk, restaurarPedido, restaurarPedidosBulk } from '../../services/api'
 import { useAdminBrand } from '../../context/AdminBrandContext'
+import { useToast } from '../../context/ToastContext'
 import './Admin.css'
 
 // Confirmación reforzada según estado del pedido
@@ -19,6 +20,7 @@ const getDeleteMessage = (pedido) => {
 }
 
 export default function AdminPedidos() {
+  const { toast, confirmModal } = useToast();
   const [pedidos, setPedidos] = useState([])
   const [deletedPedidos, setDeletedPedidos] = useState([])
   const [search, setSearch] = useState('')
@@ -46,7 +48,7 @@ export default function AdminPedidos() {
       .catch((err) => {
         console.error('Error fetching pedidos:', err);
         setLoading(false)
-        alert('Error al cargar pedidos: ' + err.message)
+        toast.error('Error al cargar pedidos: ' + err.message)
       })
   }
 
@@ -100,20 +102,22 @@ export default function AdminPedidos() {
   }
 
   const handleDelete = async (pedido) => {
-    if (!window.confirm(getDeleteMessage(pedido))) return
+    const confirmed = await confirmModal({ title: '¿Mover a papelera?', message: getDeleteMessage(pedido), isDanger: true });
+    if (!confirmed) return;
     try {
       await eliminarPedido(pedido._id)
       // Mover de activos a eliminados en el state local
       setPedidos(prev => prev.filter(p => p._id !== pedido._id))
       setDeletedPedidos(prev => [{ ...pedido, deleted: true, deletedAt: new Date().toISOString() }, ...prev])
     } catch (err) {
-      alert(err.message)
+      toast.error(err.message)
     }
   }
 
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return
-    if (!window.confirm(`¿Mover ${selectedIds.length} pedidos a la papelera?\n\nPodés restaurarlos desde la pestaña Papelera.`)) return
+    const confirmed = await confirmModal({ title: '¿Eliminar pedidos seleccionados?', message: `¿Mover ${selectedIds.length} pedidos a la papelera?\nPodés restaurarlos desde la pestaña Papelera.`, isDanger: true });
+    if (!confirmed) return;
     try {
       await eliminarPedidosBulk(selectedIds)
       const movedPedidos = pedidos.filter(p => selectedIds.includes(p._id))
@@ -121,7 +125,7 @@ export default function AdminPedidos() {
       setDeletedPedidos(prev => [...movedPedidos.map(p => ({ ...p, deleted: true, deletedAt: new Date().toISOString() })), ...prev])
       setSelectedIds([])
     } catch (err) {
-      alert(err.message)
+      toast.error(err.message)
     }
   }
 
@@ -136,13 +140,14 @@ export default function AdminPedidos() {
         fetchPedidos()
       }
     } catch (err) {
-      alert(err.message)
+      toast.error(err.message)
     }
   }
 
   const handleBulkRestore = async () => {
     if (selectedIds.length === 0) return
-    if (!window.confirm(`¿Restaurar ${selectedIds.length} pedidos?`)) return
+    const confirmed = await confirmModal({ title: '¿Restaurar pedidos?', message: `¿Restaurar ${selectedIds.length} pedidos seleccionados?` });
+    if (!confirmed) return;
     try {
       await restaurarPedidosBulk(selectedIds)
       const restoredPedidos = deletedPedidos.filter(p => selectedIds.includes(p._id))
@@ -150,7 +155,7 @@ export default function AdminPedidos() {
       setPedidos(prev => [...restoredPedidos.map(p => ({ ...p, deleted: false, deletedAt: null })), ...prev])
       setSelectedIds([])
     } catch (err) {
-      alert(err.message)
+      toast.error(err.message)
     }
   }
 

@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getProductos, eliminarProducto, togglePublicadoProducto, toggleDropProducto, bulkToggleDropProductos } from '../../services/api'
 import { useAdminBrand } from '../../context/AdminBrandContext'
+import { useToast } from '../../context/ToastContext'
 import { optimizeImage } from '../../utils/imageOptimizer'
 import './Admin.css'
 
 export default function AdminProductos() {
+  const { toast, confirmModal } = useToast();
   const [productos,    setProductos]    = useState([])
   const [loading,      setLoading]      = useState(true)
   const [busqueda,     setBusqueda]     = useState('')
@@ -87,7 +89,7 @@ export default function AdminProductos() {
 
   const eliminarSeleccionados = async () => {
     if (seleccionados.size === 0) return
-    const ok = window.confirm(`¿Eliminar los ${seleccionados.size} productos seleccionados? Esta acción no se puede deshacer.`)
+    const ok = await confirmModal({ title: '¿Eliminar productos?', message: `¿Eliminar los ${seleccionados.size} productos seleccionados? Esta acción no se puede deshacer.`, isDanger: true })
     if (!ok) return
     const ids = [...seleccionados]
     for (const id of ids) {
@@ -110,7 +112,7 @@ export default function AdminProductos() {
       setSeleccionados(new Set())
       setOpenBulkMenu(false)
     } catch (error) {
-      alert('No se pudo añadir los productos al Nuevo Drop masivamente.')
+      toast.error('No se pudo añadir los productos al Nuevo Drop masivamente.')
     } finally {
       setIsBulkActionLoading(false)
     }
@@ -126,7 +128,7 @@ export default function AdminProductos() {
       setSeleccionados(new Set())
       setOpenBulkMenu(false)
     } catch (error) {
-      alert('No se pudo remover los productos del Nuevo Drop masivamente.')
+      toast.error('No se pudo remover los productos del Nuevo Drop masivamente.')
     } finally {
       setIsBulkActionLoading(false)
     }
@@ -134,14 +136,14 @@ export default function AdminProductos() {
 
   /* ── Acciones individuales ── */
   const handleEliminar = async (id, nombre) => {
-    const ok = window.confirm(`Eliminar "${nombre}"? Esta accion no se puede deshacer.`)
+    const ok = await confirmModal({ title: '¿Eliminar producto?', message: `¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`, isDanger: true })
     if (!ok) return
     try {
       await eliminarProducto(id)
       setProductos(prev => prev.filter(p => p._id !== id))
       setSeleccionados(prev => { const n = new Set(prev); n.delete(id); return n })
     } catch {
-      alert('No se pudo eliminar el producto')
+      toast.error('No se pudo eliminar el producto')
     }
   }
 
@@ -150,7 +152,7 @@ export default function AdminProductos() {
       const data = await togglePublicadoProducto(id)
       setProductos(prev => prev.map(p => (p._id === id ? data.producto : p)))
     } catch {
-      alert('No se pudo actualizar la visibilidad')
+      toast.error('No se pudo actualizar la visibilidad')
     }
   }
 
@@ -159,7 +161,7 @@ export default function AdminProductos() {
       const data = await toggleDropProducto(id)
       setProductos(prev => prev.map(p => (p._id === id ? data.producto : p)))
     } catch {
-      alert('No se pudo actualizar el estado drop')
+      toast.error('No se pudo actualizar el estado drop')
     }
   }
 

@@ -1,0 +1,183 @@
+/* ── SISTEMA DE TOASTS & MODALES LOOSERFIT ── */
+.toast-container {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  min-width: 280px;
+  max-width: 420px;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  background: #141414;
+  color: #fff;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 1px rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  animation: toastFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  border-left: 4px solid var(--accent, #fff);
+}
+
+.toast--success {
+  border-left-color: #10b981;
+}
+
+.toast--error {
+  border-left-color: #ef4444;
+}
+
+.toast--warning {
+  border-left-color: #f59e0b;
+}
+
+.toast--info {
+  border-left-color: #3b82f6;
+}
+
+.toast__content {
+  flex: 1;
+}
+
+.toast__close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  padding: 0.25rem;
+  font-size: 1rem;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.toast__close:hover {
+  color: #fff;
+}
+
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── MODAL DE CONFIRMACIÓN ELEGANTE ── */
+.custom-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  animation: confirmFadeIn 0.2s ease-out;
+}
+
+.custom-confirm-modal {
+  background: #181818;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  max-width: 440px;
+  width: 100%;
+  padding: 1.75rem;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+  color: #fff;
+  animation: confirmScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.custom-confirm-modal h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  letter-spacing: -0.01em;
+}
+
+.custom-confirm-modal p {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 1.5rem 0;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.custom-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.custom-confirm-btn {
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.custom-confirm-btn--cancel {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.custom-confirm-btn--cancel:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.custom-confirm-btn--confirm {
+  background: #fff;
+  color: #000;
+}
+
+.custom-confirm-btn--confirm:hover {
+  background: #e5e5e5;
+}
+
+.custom-confirm-btn--danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.custom-confirm-btn--danger:hover {
+  background: #dc2626;
+}
+
+@keyframes confirmFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes confirmScaleUp {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 600px) {
+  .toast-container {
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+  }
+  .toast {
+    min-width: unset;
+    width: 100%;
+  }
+}

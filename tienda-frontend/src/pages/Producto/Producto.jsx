@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { getProductoById } from '../../services/api'
 import { useCart } from '../../context/CartContext'
+import { useToast } from '../../context/ToastContext'
 import { optimizeImage } from '../../utils/imageOptimizer'
 import './Producto.css'
 
@@ -34,9 +35,9 @@ export default function Producto() {
   }, [lightbox])
 
   const agregarAlCarrito = () => {
-    if (!talleElegido) return alert('Elegí un talle primero')
+    if (!talleElegido) return toast.warning('Elegí un talle primero')
     addItem(producto, talleElegido, 1)
-    alert(`✓ ${producto.nombre} (${talleElegido}) agregado al carrito`)
+    toast.success(`✓ ${producto.nombre} (${talleElegido}) agregado al carrito`)
   }
 
   if (loading) return (

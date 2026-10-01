@@ -5,6 +5,7 @@ import './styles/global.css'
 import App from './App.jsx'
 import { CartProvider } from './context/CartContext.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
+import { ToastProvider } from './context/ToastContext.jsx'
 import { getBrandSlug } from './services/api'
 
 document.title = 'looserfit.com'
@@ -18,7 +19,7 @@ createRoot(document.getElementById('root')).render(
     <BrowserRouter>
       <AuthProvider>
         <CartProvider brandSlug={initialBrandSlug}>
-          <App />
+          <ToastProvider><App /></ToastProvider>
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>

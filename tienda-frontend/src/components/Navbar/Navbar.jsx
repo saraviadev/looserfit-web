@@ -19,6 +19,33 @@ export default function Navbar() {
   const [authOpen,     setAuthOpen]     = useState(false)
   const { user } = useAuth()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [lastSeenNotif, setLastSeenNotif] = useState(() => {
+    try { return localStorage.getItem('looserfit_last_seen_notif') || '1970-01-01' } catch { return '1970-01-01' }
+  })
+
+  // Condición real de notificación pendiente / no leída:
+  // 1) Algún pedido pendiente de comprobante de pago
+  // 2) Algún pedido actualizado posteriormente al último click en la campana
+  const hasUnreadNotification = Boolean(
+    user && (misPedidos || []).some(p => {
+      const needsReceipt = p.estado === 'Pendiente' && !p.comprobante
+      const lastUpdate = p.updatedAt ? new Date(p.updatedAt).getTime() : 0
+      const seenTime = new Date(lastSeenNotif).getTime()
+      const isNewUpdate = lastUpdate > seenTime
+      return needsReceipt || isNewUpdate
+    })
+  )
+
+  const toggleNotifications = () => {
+    const nextState = !notificationsOpen
+    setNotificationsOpen(nextState)
+    if (nextState) {
+      const now = new Date().toISOString()
+      try { localStorage.setItem('looserfit_last_seen_notif', now) } catch {}
+      setLastSeenNotif(now)
+    }
+  }
+
   const [misPedidos, setMisPedidos] = useState([])
   const { totalItems } = useCart()
   // Multi-marca: obtener datos de la marca activa
@@ -92,13 +119,13 @@ export default function Navbar() {
               <div className="nav-notifications">
                 <button 
                   className={`icon-btn ${notificationsOpen ? 'icon-btn--active' : ''}`} 
-                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  onClick={toggleNotifications}
                 >
                   <svg viewBox="0 0 24 24" fill="none" strokeWidth="2" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                   </svg>
-                  {(misPedidos || []).some(p => ['Pagado', 'Empaquetado', 'Enviado'].includes(p.estado)) && <span className="notif-badge"></span>}
+                  {hasUnreadNotification && <span className="notif-badge"></span>}
                 </button>
 
                 {notificationsOpen && (

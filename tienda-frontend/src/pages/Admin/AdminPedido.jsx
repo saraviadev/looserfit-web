@@ -6,6 +6,7 @@ import './Admin.css'
 const ESTADOS = ['Pendiente', 'Pagado', 'Empaquetado', 'Enviado', 'Entregado', 'Cancelado']
 
 export default function AdminPedido() {
+  const { toast } = useToast();
   const { id } = useParams()
   const [pedido, setPedido] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -38,9 +39,9 @@ export default function AdminPedido() {
       const actualizado = await actualizarTrackingPedido(id, num)
       setPedido(actualizado.pedido)
       setSaving(false)
-      alert('Seguimiento actualizado')
+      toast.success('Seguimiento postal actualizado correctamente')
     } catch {
-      alert('Error al actualizar seguimiento')
+      toast.error('Error al actualizar seguimiento postal')
       setSaving(false)
     }
   }
