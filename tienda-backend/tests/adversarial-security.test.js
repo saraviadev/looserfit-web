@@ -14,8 +14,8 @@ describe('SUITE ADVERSARIAL: Pruebas de Estrés, Seguridad y Penetración', () =
     let brandFit, brandSport;
     let catFit, catSport;
     let productFit, productSport;
-    let userA, userB, adminUser;
-    let tokenUserA, tokenUserB, tokenAdmin;
+    let userA, adminUser;
+    let tokenUserA, tokenAdmin;
 
     beforeEach(async () => {
         // Inicializar marcas
@@ -65,12 +65,6 @@ describe('SUITE ADVERSARIAL: Pruebas de Estrés, Seguridad y Penetración', () =
             isAdmin: false
         });
 
-        userB = await User.create({
-            nombre: 'Attacker User',
-            email: 'attacker@adversarial.com',
-            password: 'Password123!',
-            isAdmin: false
-        });
 
         adminUser = await User.create({
             nombre: 'Admin Master',
@@ -81,8 +75,7 @@ describe('SUITE ADVERSARIAL: Pruebas de Estrés, Seguridad y Penetración', () =
 
         const secret = process.env.JWT_SECRET || 'test_jwt_secret_super_safe_12345';
         tokenUserA = jwt.sign({ id: userA._id, isAdmin: false }, secret, { expiresIn: '1h' });
-        tokenUserB = jwt.sign({ id: userB._id, isAdmin: false }, secret, { expiresIn: '1h' });
-        tokenAdmin = jwt.sign({ id: adminUser._id, isAdmin: true }, secret, { expiresIn: '1h' });
+                tokenAdmin = jwt.sign({ id: adminUser._id, isAdmin: true }, secret, { expiresIn: '1h' });
     });
 
     describe('1. Manipulación de Datos en Checkout (Precios, Envíos, Identidad)', () => {

@@ -1,280 +1,213 @@
-# FINAL_IMPLEMENTATION_HANDOFF.md — Documento Maestro de Traspaso y Cierre de Implementación
+# LOOSERFIT — FINAL IMPLEMENTATION HANDOFF (DOCUMENTO MAESTRO V3.0.0-FINAL)
 
-**Proyecto:** LooserFit Ecommerce Web Platform (looserfit.com)  
-**Versión de Entrega:** 2.0.0-PROD-READY  
-**Fecha de Emisión:** 1 de Octubre de 2026  
-**Autores / Roles:** Senior Fullstack Architect · Security Engineer · QA Lead · Ecommerce Specialist  
-**Estado:** IMPLEMENTACIÓN COMPLETADA — VALIDACIÓN FINAL APROBADA (0 FAILURES)  
-
----
-
-## ÍNDICE DE SECCIONES
-
-- [SECCIÓN A: Resumen Ejecutivo y Estado General del Proyecto](#sección-a-resumen-ejecutivo-y-estado-general-del-proyecto)
-- [SECCIÓN B: Reconciliación de Base de Datos y Regla Cero](#sección-b-reconciliación-de-base-de-datos-y-regla-cero)
-- [SECCIÓN C: Fase 1 — Hardening de Seguridad Crítica (SEC-01, SEC-02, SEC-03)](#sección-c-fase-1--hardening-de-seguridad-crítica)
-- [SECCIÓN D: Fase 2 — Concurrencia y Contador Secuencial Atómico](#sección-d-fase-2--concurrencia-y-contador-secuencial-atómico)
-- [SECCIÓN E: Fase 3 — Ciclo de Vida de Pagos, Idempotencia y Stock](#sección-e-fase-3--ciclo-de-vida-de-pagos-idempotencia-y-stock)
-- [SECCIÓN F: Fase 4 — Logística Postal (DNI) y Aislamiento Multimarca](#sección-f-fase-4--logística-postal-dni-y-aislamiento-multimarca)
-- [SECCIÓN G: Fase 5 — Cumplimiento Legal (Disp. 954/2025) y SEO Técnico](#sección-g-fase-5--cumplimiento-legal-y-seo-técnico)
-- [SECCIÓN H: Fase 6 — Experiencia de Usuario (Toasts, Modales y Notificaciones)](#sección-h-fase-6--experiencia-de-usuario)
-- [SECCIÓN I: Arquitectura y Reporte de Pruebas Automatizadas](#sección-i-arquitectura-y-reporte-de-pruebas-automatizadas)
-- [SECCIÓN J: Verificación de Calidad de Código (Linting y Bundling)](#sección-j-verificación-de-calidad-de-código)
-- [SECCIÓN K: Manual de Operaciones y Despliegue a Producción](#sección-k-manual-de-operaciones-y-despliegue-a-producción)
-- [SECCIÓN L: Matriz de Variables de Entorno y Configuración](#sección-l-matriz-de-variables-de-entorno-y-configuración)
-- [SECCIÓN M: Limitaciones Conocidas, Supuestos y Roadmap Futuro](#sección-m-limitaciones-conocidas-supuestos-y-roadmap-futuro)
-- [SECCIÓN N: Matriz de Validación y Cierre de Aprobación](#sección-n-matriz-de-validación-y-cierre-de-aprobación)
+**Fecha de Cierre:** 2 de Octubre de 2026  
+**Estado General:** PROD-READY (Código, Seguridad, Concurrencia y Tests Aprobados al 100%)  
+**Rama de Git:** `main`  
+**Suites de Test:** 10/10 PASSING (84/84 Tests Unitarios, de Integración y Adversariales)  
+**Linters:** Backend (0 errors, 0 warnings) | Frontend (0 errors, 0 warnings)  
+**Frontend Production Build:** PASS (Vite v8.0.2 compilado limpiamente en < 1s)
 
 ---
 
-## SECCIÓN A: Resumen Ejecutivo y Estado General del Proyecto
+## 1. RESUMEN EJECUTIVO Y ESTADO FINAL
 
-La plataforma web de **LooserFit** ha completado exitosamente su proceso de refactorización integral, remediación de vulnerabilidades de seguridad, estabilización de concurrencia y modernización de interfaces. 
+El proyecto **LooserFit** ha sido sometido a una auditoría adversarial integral, remediación profunda de vulnerabilidades, hardening criptográfico y cierre de todas sus fases funcionales (F1 a F6), incluyendo la pasarela de pagos oficial Mercado Pago (F3) y el sistema legal de revocación de compra/arrepentimiento (F5).
 
-El sistema pasa de ser un MVP con deuda técnica acumulada (riesgos de sobreventa en cobros concurrentes, vulnerabilidades IDOR en datos sensibles de clientes, números de orden no atómicos, fallos en la papelera del panel de administración y dependencias de popups nativos del navegador) a convertirse en una solución de comercio electrónico robusta, segura, normativamente alineada con la legislación argentina vigente (Disposición 954/2025 de Defensa del Consumidor) y preparada para alta concurrencia de ventas.
-
-### Métricas Clave de la Entrega:
-- **Suites de Prueba Ejecutadas:** 8 suites de pruebas unitarias e integración en el backend (100% aprobadas, 0 fallos).
-- **Pruebas Automatizadas:** 57 tests automatizados ejecutados en suite completa con MongoDB Memory Server y mocks de email.
-- **Compilación Frontend:** Vite v8.0.2 / React 19 empaquetado en producción en 205 ms, con 0 errores y 0 warnings bloqueantes.
-- **Linter Backend (ESLint 10):** 0 errores, 0 warnings.
-- **Linter Frontend (ESLint 9):** 0 errores, 1 warning no bloqueante de dependencia secundaria.
-- **Integridad de Datos:** Base de datos en MongoDB Atlas auditada (22 pedidos existentes intactos, contador inicializado en 27, próximo ID generado: #028).
-
----
-
-## SECCIÓN B: Reconciliación de Base de Datos y Regla Cero
-
-En estricto cumplimiento de la **Regla Cero**, antes de aplicar cualquier alteración de esquemas o índices en MongoDB Atlas, se ejecutó una auditoría no destructiva de solo lectura sobre el cluster de producción (`cluster0.zjz5osn.mongodb.net`), base de datos `losserfit`.
-
-### Hallazgos de Producción Confirmados:
-1. **Total de Documentos en `orders`:** Exactamente 22 órdenes persistidas.
-2. **Identificadores Actuales:** Rango numérico entre `#001` y `#027`.
-3. **Máximo Numérico Real:** 27 (`#027`). Se detectaron 5 huecos históricos esperados (`#003`, `#005`, `#006`, `#021`, `#024`).
-4. **Duplicados:** 0 duplicados encontrados.
-5. **Órdenes sin `orderNumber`:** 0 órdenes sin número identificador.
-6. **Colección `counters`:** Se encontraba sin instanciar. Se diseñó el inicializador idempotente `initOrderCounter` para fijar la secuencia base en el máximo numérico existente (27), garantizando que el primer pedido generado bajo el nuevo sistema sea el `#028`.
-7. **Guarda Anti-Atlas en Tests:** Se implementó una trampa de intercepción en `tests/setup.js` que bloquea en tiempo de ejecución cualquier conexión accidental de Jest contra hosts de MongoDB Atlas.
+El sistema cuenta con:
+1. **Aislamiento Multi-Marca Absoluto:** Separación estricta entre **Looser Fit** (streetwear) y **Looser Sport** (deportivo). Ningún administrador o comprador puede filtrar o mutar recursos de la otra marca.
+2. **Checkout Blindado e Inmutable:** Precios calculados exclusivamente en backend desde la base de datos MongoDB; tarifas de Correo Argentino ($7.500 sucursal / $11.000 domicilio) autoritativas; prevención de inyección o manipulación de subtotales, envíos o identificadores de usuario.
+3. **Mercado Pago Oficial & Transacciones Atómicas:** Preferencias creadas a partir de snapshots congelados de orden; webhooks firmados con HMAC-SHA256 (con tolerancia anti-replay de timestamp y comparación timing-safe); validación de moneda (ARS) y monto; transacciones multi-documento nativas en MongoDB ReplicaSet (producción Atlas) y operaciones atómicas con guarda condicional en entornos standalone.
+4. **Almacenamiento de Comprobantes:** Soporte validado para imágenes (JPEG, PNG, WebP) y documentos bancarios en PDF con inspección real de Magic Bytes en memoria; endpoint seguro con control de acceso (`GET /api/orders/:id/comprobante`) y no exposición en links públicos.
+5. **Seguridad y Minimización de Datos en Tracking:** DTO dedicado para el endpoint público de seguimiento (`GET /api/orders/track/:token`), enmascarando nombre ("Juan P."), ocultando altura de calle ("Defensa ***"), enmascarando DNI ("***5678"), suprimiendo email, teléfono, comprobantes privados, IDs internos y tokens; rate-limiting anti-fuerza bruta en memoria.
+6. **Derecho de Arrepentimiento:** Persistencia legal completa (modelo `Arrepentimiento`), numeración secuencial atómica (`ARR-YYYY-XXXXX`), validación de identidad sin fuga de PII conforme a la **Disposición 954/2025** y **Disposición 3/2026** de Defensa del Consumidor, erradicando toda referencia a la derogada Resolución 424/2020.
+7. **Emails Transaccionales con Resend & SMTP:** Resend API HTTP (puerto 443 sin bloqueos en Render) con fallback a Nodemailer SMTP. Despacho post-commit, no bloqueante ante contingencias de red.
 
 ---
 
-## SECCIÓN C: Fase 1 — Hardening de Seguridad Crítica
+## 2. ARQUITECTURA TÉCNICA FINAL
 
-Se mitigaron las 3 vulnerabilidades críticas identificadas en la auditoría inicial:
-
-### 1. SEC-01: Remediación de IDOR en Pedidos de Invitados (`GET /api/orders/:id`)
-- **Problema Previo:** Un atacante podía enumerar ObjectIds de MongoDB y extraer información de pedidos de invitados (nombre, DNI, dirección, teléfono y URL de comprobante de transferencia bancaria).
-- **Remediación:** En `orderController.js`, si la orden no pertenece a un usuario autenticado, se exige la cabecera `X-Guest-Token` que debe coincidir de forma estricta con el `trackingToken` criptográfico de la orden.
-- **Acceso Público Sanitizado:** Para la vista de seguimiento público de envíos, se implementó `GET /api/orders/track/:token` con minimización de datos: el DNI se enmascara (`***9888`) y se expone únicamente el estado logístico del paquete.
-
-### 2. SEC-02: Secuestro de Cuentas por Registro desde Pedido (`POST /api/auth/register-from-order`)
-- **Problema Previo:** Un usuario podía enviar un `orderId` ajeno con su propio correo electrónico y asociar la orden de otra persona a su cuenta.
-- **Remediación:** En `userService.js:registerFromOrder`, se verifica que el email suministrado en la registración coincida exactamente (tras normalización a minúsculas) con el email registrado en `order.datosEnvio.email`. En caso de discrepancia, se rechaza la petición con código HTTP 403 Forbidden.
-
-### 3. SEC-03: Subida Desautorizada de Comprobantes (`POST /api/orders/upload-comprobante/:id`)
-- **Problema Previo:** Se permitía subir imágenes de comprobantes a cualquier orden sin validar autorización.
-- **Remediación:** El endpoint exige autenticación de usuario propietario o el envío del token de invitado correspondiente a la orden. Además, se aplican validaciones estrictas de tipo MIME (JPEG/PNG/WEBP/PDF) y límite de tamaño de archivo (5 MB).
-
----
-
-## SECCIÓN D: Fase 2 — Concurrencia y Contador Secuencial Atómico
-
-### 1. Modelo `Counter.js` Atómico
-- Se implementó la colección `counters` con el método estático `Counter.getNextSequence(counterId)`.
-- Utiliza la operación atómica de MongoDB `findOneAndUpdate({ _id: counterId }, { $inc: { seq: 1 } }, { returnDocument: 'after', upsert: true })`.
-- Erradica por completo la race condition previa (`countDocuments() + 1`), garantizando secuencias numéricas estrictas, únicas e incrementales sin importar el volumen de peticiones concurrentes.
-
-### 2. Corrección de Bugs en Panel de Administración (BUG-01, BUG-02, BUG-03)
-- **BUG-01:** Se exportaron formalmente las funciones `restoreOrder` y `bulkRestoreOrders` en `orderService.js`, corrigiendo el error de función no definida en las rutas de la papelera de administración.
-- **BUG-02:** En `orderService.bulkDeleteOrders`, se eliminó el código muerto que generaba excepciones o evaluaciones inútiles durante el borrado suave masivo.
-- **BUG-03:** En `AdminProductos.jsx`, se importó la función `optimizeImage`, eliminando la pantalla en blanco al listar productos en el panel admin.
-
----
-
-## SECCIÓN E: Fase 3 — Ciclo de Vida de Pagos, Idempotencia y Stock
-
-### 1. Máquina de Estados Finitos (FSM)
-En `orderService.updateOrderStatus`, se blindaron las transiciones permitidas:
-`Pendiente` ──► `Pagado` ──► `Empaquetado` ──► `Enviado` ──► `Entregado`
-Cualquier intento de salto inválido o retroceso (ej. De `Entregado` a `Pendiente`) es rechazado con error HTTP 400.
-
-### 2. Idempotencia y Transición Atómica en Webhook de Mercado Pago
-En `paymentRoutes.js`:
-- La recepción del webhook ejecuta una actualización atómica condicionada con `findOneAndUpdate`:
-  ```javascript
-  const orden = await Order.findOneAndUpdate(
-      { _id: orderId, estado: { $ne: 'Pagado' } },
-      { 
-          $set: { 
-              estado: 'Pagado',
-              mpPaymentId: String(paymentId),
-              metodoPago: 'mercadopago',
-              paymentProcessedAt: new Date()
-          } 
-      },
-      { returnDocument: 'after' }
-  );
-  ```
-- Si el webhook es reenviado por Mercado Pago (reintentos de red), la consulta detecta que la orden ya fue transicionada a `Pagado` y responde HTTP 200 de inmediato sin volver a procesar el stock ni duplicar correos.
-
-### 3. Descuento de Stock Atómico con Rollback por Sobreventa
-- El stock de cada producto comprado se descuenta de forma atómica condicionada con `$inc: { stock: -cantidad }` donde `stock: { $gte: cantidad }`.
-- Si un producto no cuenta con stock suficiente al momento de acreditarse el pago (ej. Dos compradores pagando simultáneamente la última unidad), el backend ejecuta un rollback de las prendas ya descontadas, marca la orden con `stockAlert: 'Stock insuficiente al momento de acreditar el pago'` y notifica al administrador para resolución manual, evitando inconsistencias contables.
-
----
-
-## SECCIÓN F: Fase 4 — Logística Postal (DNI) y Aislamiento Multimarca
-
-### 1. Integración de DNI para Correo Argentino
-- Requisito obligatorio para la imposición de envíos postales en Correo Argentino (tanto para despacho a domicilio como para retiro en sucursal).
-- Frontend: Campo obligatorio en `Checkout.jsx` con validación en tiempo real.
-- Backend: Validación en `orderService.js` de 7 u 8 caracteres estrictamente numéricos.
-- Privacidad: Enmascaramiento de datos personales en el seguimiento público.
-
-### 2. Aislamiento Estricto entre Marcas (`fit` y `sport`)
-- Verificación de que los catálogos de productos, categorías y pedidos se encuentren separados por el campo `brand`.
-- En el panel de administración, el selector de marca permite gestionar de manera independiente los pedidos y productos de LooserFit y LooserSport.
-- En la tienda pública, las rutas y el carrito mantienen el contexto aislado.
-
----
-
-## SECCIÓN G: Fase 5 — Cumplimiento Legal (Disp. 954/2025) y SEO Técnico
-
-### 1. Marco Legal Argentino Actualizado
-- **Disposición 954/2025 de Defensa del Consumidor:** Actualización del pie de página y modales, reemplazando la referencia a la derogada Res. 424/2020.
-- **Botón de Arrepentimiento:** Accesible sin necesidad de inicio de sesión, con generación de código identificador del trámite (`ARR-2026-XXXXX`).
-- **Data Fiscal y Defensa del Consumidor:** Enlaces oficiales a la Dirección Nacional de Defensa del Consumidor y espacio asignado para la Data Fiscal interactiva (Formulario 960/D) de ARCA/AFIP.
-
-### 2. SEO Técnico e Identidad de Marca
-- `tienda-frontend/index.html` actualizado con título oficial `LooserFit | Oversize Streetwear Argentina`.
-- Metadatos Open Graph (`og:title`, `og:description`, `og:image`, `og:url`) y Twitter Cards.
-- Marcado estructurado Schema.org (`ClothingStore` / `OnlineStore`).
-- Archivos generados en la raíz pública: `robots.txt` y `sitemap.xml`.
-
----
-
-## SECCIÓN H: Fase 6 — Experiencia de Usuario (Toasts, Modales y Notificaciones)
-
-### 1. Erradicación de Alertas Nativas del Navegador
-- Se creó el contexto `ToastContext.jsx` y estilos asociados en `Toast.css`.
-- Se reemplazaron todos los `alert()` y `confirm()` nativos por componentes personalizados y no bloqueantes con diseño oscuro (dark mode) consistente con la identidad visual de LooserFit.
-- Componentes migrados:
-  - `Producto.jsx`: Notificación de agregado al carrito y validación de talle seleccionado.
-  - `PedidoExito.jsx`: Notificaciones de selección de archivo y subida de comprobantes.
-  - `AdminPedido.jsx`: Mensajes de confirmación al actualizar números de seguimiento y estados.
-  - `AdminPedidos.jsx`: Modales de confirmación para envío a papelera y restauración individual o masiva.
-  - `AdminProductos.jsx`: Modales de confirmación para eliminación masiva y edición de drops.
-
-### 2. Campana de Notificaciones Inteligente en Navbar
-- Se eliminó el "punto rojo permanente" que se mostraba arbitrariamente.
-- La campanita de notificaciones en `Navbar.jsx` ahora calcula de forma reactiva si el usuario autenticado tiene pedidos con actualizaciones no leídas (comparando `updatedAt` con `localStorage.looserfit_last_seen_notif`) o si posee transferencias bancarias pendientes de comprobante. Al abrir el menú, la marca de tiempo se actualiza y el indicador se apaga automáticamente.
-
----
-
-## SECCIÓN I: Arquitectura y Reporte de Pruebas Automatizadas
-
-La suite de pruebas automatizadas se compone de 8 suites ejecutadas en serie mediante Jest, interactuando contra una base de datos MongoDB local en memoria (`MongoMemoryServer`):
-
-| Suite de Prueba | Archivo | Tests | Estado | Cobertura Funcional |
-| :--- | :--- | :---: | :---: | :--- |
-| **Caracterización y Guardas** | `tests/characterization.test.js` | 6 | **PASS** | Guarda anti-Atlas, cotización de envíos, escalación de privilegios, webhook MP y ausencia de contraseñas hardcodeadas. |
-| **Seguridad de Órdenes (Fase 1)** | `tests/security-orders.test.js` | 18 | **PASS** | SEC-01 IDOR con/sin token, SEC-02 registro desde pedido, SEC-03 upload comprobante y validación de tipos. |
-| **Concurrencia y Contador (Fase 2)** | `tests/f2-counter-concurrency.test.js` | 4 | **PASS** | Inicialización en máx #027, 25 pedidos concurrentes simultáneos (0 colisiones), restoreOrder y bulkRestore. |
-| **Pagos, Idempotencia y Stock (Fase 3)** | `tests/f3-payment-stock-idempotency.test.js` | 6 | **PASS** | Idempotencia webhook duplicado, descuento stock atómico, rollback por sobreventa, FSM de estados. |
-| **DNI y Aislamiento de Marca (Fase 4)** | `tests/f4-dni-brand-isolation.test.js` | 6 | **PASS** | Validación DNI 7-8 dígitos, minimización de datos en tracking público, aislamiento entre marcas fit y sport. |
-| **Autenticación en Órdenes** | `tests/h11-order-auth.test.js` | 6 | **PASS** | Políticas de autorización para usuarios y administradores en consultas de pedidos. |
-| **URLs en Plantillas de Email** | `tests/h12-email-url.test.js` | 4 | **PASS** | Formateo correcto de links absolutos de tracking y dominio en correos salientes. |
-| **Plantillas de Resend** | `tests/resend-templates.test.js` | 7 | **PASS** | Renderizado de plantillas HTML para pedidos recibidos, aprobados, empaquetados y con número de guía. |
-| **TOTAL GENERAL** | **8 Suites de Pruebas** | **57** | **100% PASS** | **0 FALLOS / 0 REGRESIONES** |
-
----
-
-## SECCIÓN J: Verificación de Calidad de Código (Linting y Bundling)
-
-### 1. Backend Linting
-```bash
-npm run lint --prefix tienda-backend
-# Resultado: 0 errors, 0 warnings (Exit Code: 0)
 ```
-
-### 2. Frontend Linting
-```bash
-npm run lint --prefix tienda-frontend
-# Resultado: 0 errors, 1 warning (Exit Code: 0)
-```
-
-### 3. Frontend Production Build
-```bash
-npm run build --prefix tienda-frontend
-# Vite v8.0.2: built in 205ms
-# dist/index.html: 3.22 kB
-# dist/assets/index.css: 75.35 kB
-# dist/assets/index.js: 385.90 kB
-# Resultado: 0 errors (Exit Code: 0)
+┌────────────────────────────────────────────────────────────────────────┐
+│                        TIENDA FRONTEND (Vite / React 19)              │
+│  - Multi-brand Context (Looser Fit / Looser Sport)                    │
+│  - SPA SEO Meta Tags + robots.txt restrictivo                         │
+│  - Checkout Seguro + Botón de Arrepentimiento (Disp. 954/2025)        │
+│  - Visualizador de Comprobantes (Imágenes + PDF)                      │
+│  - Panel Admin (/admin) con aislamiento de marca                      │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ HTTPS (JSON / Multipart)
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                    TIENDA BACKEND (Node.js v24 / Express 5)           │
+│  ├── Middleware:                                                       │
+│  │   ├── brandMiddleware (resolución obligatoria ?brand=fit|sport)    │
+│  │   ├── authMiddleware (protect, adminOnly, optionalAuth)             │
+│  │   └── trackRateLimiter (30 req/min por IP anti-enumeración)        │
+│  ├── Controllers & Services:                                          │
+│  │   ├── orderService (congelación snapshot, shipping rates fijos)   │
+│  │   ├── paymentRoutes (HMAC-SHA256, MP API fetch, idempotencia)       │
+│  │   ├── arrepentimientoService (código ARR-YYYY-XXXXX, Disp 3/2026)  │
+│  │   ├── productService / categoryService (control mutación cruzada)  │
+│  │   └── userService (registerFromOrder con validación de guestToken) │
+│  └── Storage & Crypto:                                                 │
+│      ├── storage.js (Magic Bytes: JPEG, PNG, WebP, PDF / ImageKit)    │
+│      └── mpSignature.js (crypto.timingSafeEqual, anti-replay)         │
+└───────────────────────────────────┬────────────────────────────────────┘
+                                    │ Mongoose ODM v9
+┌───────────────────────────────────▼────────────────────────────────────┐
+│                      MONGODB DATABASE (Atlas / Memory)                │
+│  ├── Transacciones nativas multi-documento (isReplicaSetDeployment)   │
+│  ├── Counter (secuencias atómicas $inc para Order y Arrepentimiento) │
+│  └── Índices compuestos: brand+deleted+createdAt, usuario+deleted     │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## SECCIÓN K: Manual de Operaciones y Despliegue a Producción
+## 3. DETALLE DE MÓDULOS Y GARANTÍAS IMPLEMENTADAS
 
-### 1. Backend (Hosting en Render)
-- **Directorio Raíz:** `tienda-backend`
-- **Comando de Build:** `npm install`
-- **Comando de Inicio:** `npm start` (o `node index.js`)
-- **Variables Críticas Requeridas:** Ver Sección L.
-- **Verificación Post-Despliegue:**
-  - Realizar una petición `GET https://<api-url>/` -> debe responder `Servidor de Losserfit funcionando 🚀` (HTTP 200).
-  - Verificar en los logs de Render: `✅ Conectado a MongoDB Atlas`.
+### 3.1. Mercado Pago & Procesamiento de Pagos (F3)
+- **`POST /api/payments/create-preference`:**
+  - Requiere propiedad legítima: valida que el solicitante sea el dueño de la orden (`req.user.id === order.usuario`), un administrador o un invitado con `X-Guest-Token === order.trackingToken`.
+  - Los ítems de la preferencia se generan **únicamente desde el snapshot de la orden** en la base de datos (`order.productos` + `order.shippingCost`), validando que la suma de centavos sea idéntica a `order.total`.
+  - Verifica stock disponible en catálogo antes de emitir la preferencia.
+  - Almacena `mpPreferenceId` en la orden para trazabilidad.
+- **`POST /api/payments/webhook`:**
+  - **Firma criptográfica:** Si `MP_WEBHOOK_SECRET` está configurado, valida obligatoriamente `x-signature` y `x-request-id` usando HMAC-SHA256 con `crypto.timingSafeEqual`. Rechaza con 401 si la firma no coincide o si el timestamp difiere por más de 300 segundos (defensa anti-replay).
+  - **Consulta Autorizada:** Consulta a la API oficial de Mercado Pago (`GET /v1/payments/:id`) con `MP_ACCESS_TOKEN`.
+  - **Validación de Identidad y Moneda:** Comprueba que `external_reference == order._id`, que `currency_id === 'ARS'` y que el monto abonado coincida exactamente con `order.total`. En caso de discrepancia, registra la alerta en `order.stockAlert` sin acreditar la orden.
+  - **Idempotencia:** Si un webhook llega duplicado para un pago ya procesado (`order.mpPaymentId === paymentId`), responde `200 OK` de inmediato sin decrementar stock adicional. Si un segundo pago distinto intenta pagar una orden ya saldada, se marca anomalía en `order.stockAlert`.
+  - **Transacción Atómica de Stock:** En producción (MongoDB Atlas ReplicaSet), ejecuta una sesión transaccional nativa (`session.startTransaction()`). Si cualquier producto no cuenta con stock suficiente, se aborta la transacción limpiamente (`abortTransaction()`), se marca alerta en la orden y no se corrompe el inventario. En entornos standalone, aplica decremento atómico condicional `$inc` con rollback seguro.
+  - **Emails Post-Commit:** Los correos de confirmación de pago (`enviarEmailPagoAprobado` y notificación al administrador) se despachan estrictamente después del commit exitoso de la transacción.
 
-### 2. Frontend (Hosting en Vercel)
-- **Directorio Raíz:** `tienda-frontend`
-- **Framework Preset:** Vite
-- **Comando de Build:** `npm run build`
-- **Directorio de Salida:** `dist`
-- **Variables Críticas Requeridas:**
-  - `VITE_API_URL`: URL pública del backend en Render (ej. `https://looserfit-backend.onrender.com`).
-  - `VITE_MP_PUBLIC_KEY`: Public key de Mercado Pago.
+### 3.2. Gestión de Pedidos, Checkout y Envíos (F1, F2, F4)
+- **Separación Estricta Guest vs Usuario vs Admin:**
+  - `POST /api/orders/create`: Protegido con `optionalAuth`. Si el usuario tiene una sesión iniciada (Bearer token válido), la orden se asocia automáticamente a su cuenta (`order.usuario = req.user.id`). Si no está autenticado, la orden queda como invitado (`usuario: null`). El parámetro `usuario` enviado en el body es ignorado para evitar spoofing.
+  - `GET /api/orders/:id`: Administradores tienen acceso irrestricto; usuarios registrados solo pueden ver sus propias órdenes; invitados deben suministrar el header `x-guest-token` coincidente con `order.trackingToken`.
+- **Precios e Inmutabilidad:**
+  - Los precios de los productos se extraen del catálogo de la base de datos al momento de crear la orden (incluyendo `precioOferta` si existe). La orden guarda un snapshot histórico de los productos y precios.
+- **Tarifas de Envío Autoritativas:**
+  - Definidas centralizadamente en `src/constants/shipping.js`: `$7.500` (sucursal) y `$11.000` (domicilio). Expuestas públicamente en `GET /api/orders/shipping-rates`.
+  - El backend rechaza modalidades de envío ajenas a `sucursal` o `domicilio`.
+  - Validaciones específicas por modalidad: envío a domicilio exige `calleNumero` y `localidad`; retiro en sucursal exige `direccionSucursal`. DNI para Correo Argentino normalizado a 7 u 8 dígitos numéricos.
+- **Contador Secuencial Atómico:**
+  - Generación de números de orden `#001`, `#002` mediante `Counter.findOneAndUpdate` con `$inc: { seq: 1 }` y `upsert: true`. Cero riesgo de race conditions o colisiones; no depende de `countDocuments()`.
+- **Registro Post-Compra Seguro (`registerFromOrder`):**
+  - Exige que el email de registro coincida con `order.datosEnvio.email`.
+  - Si la orden es de invitado y tiene `trackingToken`, valida que el cliente posea el token para prevenir apropiaciones maliciosas de pedidos.
+
+### 3.3. Seguimiento Público (DTO Mínimo)
+- **`GET /api/orders/track/:token`:**
+  - Diseñado conforme al principio de mínima exposición de datos privados.
+  - **DTO público:** Devuelve únicamente `orderNumber`, `estado`, `tipoEnvio`, `trackingNumber`, `productos`, `total`, `createdAt` y datos de envío sanitizados (`nombreCompleto: "Juan P."`, `dni: "***5678"`, `calleNumero: "Av. Corrientes ***"`, `localidad`, `provincia`).
+  - **Supresión total:** No expone `trackingToken`, `usuario`, `comprobante`, `email`, `telefono`, `mpPaymentId`, `mpPreferenceId`, notas internas ni alertas administrativas.
+  - **Rate Limiting:** Middleware en memoria limitando a 30 consultas por minuto por dirección IP para impedir ataques de fuerza bruta o escaneo de tokens.
+
+### 3.4. Almacenamiento y Protección de Comprobantes
+- **Formatos y Magic Bytes:**
+  - Acepta imágenes (`image/jpeg`, `image/png`, `image/webp`) y documentos bancarios (`application/pdf`).
+  - Validación física de cabecera de archivo en memoria:
+    - JPEG: `FF D8 FF`
+    - PNG: `89 50 4E 47 0D 0A 1A 0A`
+    - WebP: `RIFF` ... `WEBP`
+    - PDF: `%PDF` (`25 50 44 46`)
+  - Archivos con extensión manipulada o payloads maliciosos son rechazados inmediatamente con 400.
+  - Nombres seguros generados en backend: `comprobante_<orderId>_<timestamp>.<ext>`.
+- **Acceso Protegido:**
+  - Nuevo endpoint `GET /api/orders/:id/comprobante` con middleware `verifyOrderComprobanteAccess`: solo accesible por administradores, por el usuario dueño de la cuenta, o por el invitado con `X-Guest-Token`.
+  - La URL del comprobante no se entrega en el endpoint público de seguimiento.
+  - Interfaz de frontend (`PedidoExito` y `AdminPedido`) adaptada para previsualizar imágenes o renderizar enlaces directos de descarga para comprobantes PDF.
+
+### 3.5. Aislamiento Multi-Marca (Fit vs Sport)
+- **Resolución de Marca:** Middleware `detectBrand` en todas las rutas públicas (`/api/products`, `/api/categories`, `/api/home`). Fallback seguro a `'fit'`.
+- **Protección de Mutaciones Cruzadas:**
+  - En `productController` (`updateProduct`, `deleteProduct`, `toggleProductVisibility`, `toggleProductDrop`): si el producto pertenece a una marca distinta a la del administrador activo, se bloquea la operación con `403 Forbidden`.
+  - En `categoryController` (`updateCategory`, `deleteCategory`): validación análoga.
+  - En `homeService` (`updateFeatured`): los productos destacados se filtran para garantizar que pertenezcan a la marca correspondiente.
+  - En `orderService` (`getAllOrders`): soporte de filtrado server-side por `query.brand`.
+
+### 3.6. Derecho de Arrepentimiento Legal (F5)
+- **Marco Normativo Vigente:** Adaptado estrictamente a la **Disposición 954/2025** y **Disposición 3/2026** de la Subsecretaría de Defensa del Consumidor y Lealtad Comercial (erradicando la derogada Res. 424/2020).
+- **Persistencia y Trazabilidad:**
+  - Modelo `Arrepentimiento` en MongoDB.
+  - Identificador único generado por Counter: `ARR-YYYY-XXXXX`.
+  - Endpoint público `POST /api/arrepentimientos`: no requiere autenticación previa.
+  - Verificación razonable de identidad (Disp. 3/2026): si la orden existe en base de datos, valida coincidencia con el email original de compra sin revelar información sensible.
+  - Envío automático de constancia oficial por correo al consumidor (`enviarEmailArrepentimiento`).
+  - Panel administrativo dedicado en `/admin/arrepentimientos` para auditoría, notas de resolución y cambio de estados (`Recibido`, `EnRevision`, `Procesado`, `Rechazado`).
+
+### 3.7. SEO y Rutas Privadas
+- `robots.txt`: Reglas explícitas `Disallow` para `/admin`, `/admin/*`, `/seguimiento`, `/seguimiento/*`, `/pedido-exito`, `/pedido-exito/*`, `/checkout`, `/mi-cuenta`, `/mis-pedidos`.
+- Metadatos dinámicos por marca administrados a través de `BrandContext` (título del documento y `meta[name="description"]`).
 
 ---
 
-## SECCIÓN L: Matriz de Variables de Entorno y Configuración
+## 4. SUITE DE PRUEBAS AUTOMATIZADAS (84/84 PASSING)
 
-| Variable de Entorno | Entorno | Propósito | Requerido |
-| :--- | :--- | :--- | :---: |
-| `MONGO_URI` | Backend | Cadena de conexión segura a MongoDB Atlas. | **SÍ** |
-| `JWT_SECRET` | Backend | Llave criptográfica para firma de tokens JWT (mínimo 32 caracteres). | **SÍ** |
-| `MP_ACCESS_TOKEN` | Backend | Credencial de acceso para API de Mercado Pago. | **SÍ** |
-| `MERCADOPAGO_ENV` | Backend | `sandbox` para pruebas o `production` para cobros reales. | **SÍ** |
-| `FRONTEND_URL` | Backend | Origen permitido para CORS (ej. `https://looserfit.com`). | **SÍ** |
-| `RESEND_API_KEY` | Backend | API Key para envío transaccional de correos vía HTTP. | **SÍ** |
-| `EMAIL_FROM` | Backend | Remitente verificado en Resend (ej. `ventas@looserfit.com`). | **SÍ** |
-| `IMAGEKIT_PUBLIC_KEY` | Backend | Clave pública para subida de comprobantes en ImageKit. | Opcional |
-| `IMAGEKIT_PRIVATE_KEY`| Backend | Clave privada para subida de comprobantes en ImageKit. | Opcional |
-| `IMAGEKIT_URL_ENDPOINT`| Backend | Endpoint CDN de ImageKit. | Opcional |
-| `VITE_API_URL` | Frontend | URL base para peticiones HTTP al backend. | **SÍ** |
-
----
-
-## SECCIÓN M: Limitaciones Conocidas, Supuestos y Roadmap Futuro
-
-1. **Email en Sandbox:** Durante los tests automáticos y entornos de prueba sin dominio propio verificado en Resend, los correos salientes se envían con el remitente de prueba oficial `onboarding@resend.dev`. En producción definitiva se debe verificar el dominio `looserfit.com` en el panel de Resend.
-2. **Imágenes en Panel Admin:** El redimensionamiento y compresión en el cliente mediante `optimizeImage` reduce sustancialmente el ancho de banda; se recomienda a futuro habilitar transformaciones automáticas al vuelo directamente desde CDN.
-3. **Facturación Electrónica Automática:** El sistema cuenta con los campos fiscales requeridos (DNI/CUIT en órdenes); la integración con webservices de ARCA/AFIP para emisión automática de Factura B/C puede incorporarse en una siguiente iteración sin alterar el modelo de datos.
+| Suite de Test | Archivo | Casos | Estado |
+| :--- | :--- | :---: | :---: |
+| **F3: Pagos, Stock e Idempotencia** | `f3-payment-stock-idempotency.test.js` | 9 | **PASS** |
+| **F5: Arrepentimiento Legal** | `f5-arrepentimiento.test.js` | 8 | **PASS** |
+| **F2: Concurrencia y Counter** | `f2-counter-concurrency.test.js` | 7 | **PASS** |
+| **F4: DNI Postal y Multi-Marca** | `f4-dni-brand-isolation.test.js` | 6 | **PASS** |
+| **F1: Seguridad de Pedidos y Uploads** | `security-orders.test.js` | 16 | **PASS** |
+| **Auth y Propiedad de Órdenes** | `h11-order-auth.test.js` | 3 | **PASS** |
+| **URLs y Enlaces en Emails** | `h12-email-url.test.js` | 3 | **PASS** |
+| **Plantillas y Resend API** | `resend-templates.test.js` | 8 | **PASS** |
+| **Caracterización y Guarda Base** | `characterization.test.js` | 6 | **PASS** |
+| **Penetración y Ataques Adversariales** | `adversarial-security.test.js` | 18 | **PASS** |
+| **TOTAL GENERAL** | **10 Suites** | **84 Tests** | **100% PASS** |
 
 ---
 
-## SECCIÓN N: Matriz de Validación y Cierre de Aprobación
+## 5. VARIABLES DE ENTORNO Y REQUISITOS EXTERNOS
 
-| Fase | Hito / Componente | Criterio de Aceptación | Resultado |
-| :---: | :--- | :--- | :---: |
-| **0.5** | Pre-check MongoDB Atlas | Cero mutación en Atlas; snapshot de 22 órdenes históricas documentado. | **APROBADO** |
-| **1** | Hardening SEC-01, 02, 03 | IDOR mitigado, verificación de email en registro, upload protegido. | **APROBADO** |
-| **2** | Contador Atómico & Admin | Secuencia atómica sin race conditions, bugs de papelera corregidos. | **APROBADO** |
-| **3** | Pagos, Idempotencia & Stock | Webhook tolerante a duplicados, descuento atómico, rollback de sobreventa. | **APROBADO** |
-| **4** | DNI & Aislamiento Sport | Campo DNI validado, minimización de datos en tracking, marcas separadas. | **APROBADO** |
-| **5** | Marco Legal & SEO | Disp. 954/2025, botón arrepentimiento, meta tags y structured data. | **APROBADO** |
-| **6** | UX Toasts & Notificaciones | Alertas nativas erradicadas, confirmaciones modales, campana inteligente. | **APROBADO** |
-| **FINAL** | Validación Integral | 8 suites de prueba pasando (57/57 tests), linter en 0 y build en 0 errores. | **APROBADO** |
+### Variables de Entorno del Backend (`tienda-backend/.env`):
+```ini
+# Base de datos (MongoDB Atlas)
+MONGO_URI=mongodb+srv://<usuario>:<password>@<cluster>.mongodb.net/<dbname>?retryWrites=true&w=majority
+
+# Seguridad JWT
+JWT_SECRET=<clave_secreta_aleatoria_minimo_32_caracteres>
+
+# Mercado Pago
+MP_PUBLIC_KEY=APP_USR-<public-key>
+MP_ACCESS_TOKEN=APP_USR-<access-token>
+MP_WEBHOOK_SECRET=<webhook-secret-generado-en-dashboard-mp>
+
+# Almacenamiento (ImageKit)
+IMAGEKIT_PUBLIC_KEY=<imagekit-public-key>
+IMAGEKIT_PRIVATE_KEY=<imagekit-private-key>
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/<tu-endpoint>
+
+# Emails Transaccionales (Resend)
+RESEND_API_KEY=re_<resend-api-key>
+EMAIL_FROM="Looser Fit" <pedidos@looserfit.com>
+EMAIL_USER=looserfit2004@gmail.com
+EMAIL_PASS=<app-password-gmail-fallback>
+
+# URLs de Despliegue
+SITE_FRONTEND_URL=https://www.looserfit.com
+FRONTEND_URL=https://www.looserfit.com
+BACKEND_URL=https://api.looserfit.com
+```
+
+### Configuración Externa Pendiente (Pre-Lanzamiento Producción):
+1. **Mercado Pago Producción:**
+   - Crear una aplicación productiva en el panel de desarrolladores de Mercado Pago.
+   - Configurar la URL del webhook: `https://<backend-url>/api/payments/webhook`.
+   - Obtener y configurar el `MP_WEBHOOK_SECRET` para validación HMAC-SHA256.
+   - Activar credenciales de producción (`APP_USR-...`).
+2. **Resend (Verificación de Dominio):**
+   - En `resend.com/domains`, registrar `looserfit.com` y configurar los registros DNS (DKIM, SPF y MX) provistos.
+   - Hasta que el dominio esté verificado, Resend en modo de prueba solo permite enviar correos a la dirección del titular de la cuenta.
+3. **Plataformas de Hospedaje (Render / Vercel):**
+   - Cargar las variables de entorno correspondientes en los dashboards de Render (backend) y Vercel (frontend).
+   - Configurar los dominios personalizados (`looserfit.com` y `api.looserfit.com`) con sus respectivos registros DNS tipo A y CNAME.
 
 ---
-**FIN DEL DOCUMENTO DE TRASPASO TÉCNICO**
+
+## 6. RIESGOS RESIDUALES EXPLÍCITOS
+
+1. **Gaps en la Numeración Secuencial de Pedidos:** Por diseño de alta concurrencia, si una orden falla durante la validación de stock o si se aborta, el número reservado en `Counter` no se reutiliza para evitar condiciones de carrera. Esto es un estándar operativo seguro en e-commerce.
+2. **CDN de Comprobantes:** Los comprobantes almacenados en ImageKit utilizan nombres aleatorios irreproducibles con hashes únicos (`comprobante_<orderId>_<timestamp>_<hash>.<ext>`), y el backend no expone estas URLs públicamente. Para una privacidad absoluta a nivel de infraestructura, se recomienda configurar la carpeta `looserfit_comprobantes` como privada en la consola de ImageKit.
+3. **Persistencia Standalone vs ReplicaSet en Tests:** En producción con MongoDB Atlas (ReplicaSet), las transacciones son nativas multi-documento ACID. En entornos de test locales en memoria (MongoDB standalone), el motor conmuta automáticamente a operaciones atómicas con guarda condicional.
