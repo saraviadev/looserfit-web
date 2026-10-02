@@ -14,7 +14,7 @@ const transporter = nodemailer.createTransport({
     secure: false,
     auth: {
         user: process.env.EMAIL_USER || 'looserfit2004@gmail.com',
-        pass: process.env.EMAIL_PASS
+        pass: (process.env.EMAIL_PASS || '').replace(/\s+/g, '')
     },
     tls: {
         rejectUnauthorized: false,
@@ -42,7 +42,8 @@ async function sendEmail({ to, bcc, subject, html }) {
     let from = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || defaultFrom;
 
     // 1. Si existe API KEY de Resend, enviamos vía HTTP (puerto 443, sin bloqueos de puerto en Render)
-    if (process.env.RESEND_API_KEY) {
+    const preferGmail = process.env.EMAIL_PROVIDER === 'gmail' || (!process.env.RESEND_API_KEY && process.env.EMAIL_PASS);
+    if (process.env.RESEND_API_KEY && !preferGmail) {
         // En Resend, si no hay un dominio personalizado verificado en EMAIL_FROM, usar el remitente oficial de prueba
         const configuredFrom = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM;
         if (!configuredFrom || configuredFrom.includes('gmail.com')) {
