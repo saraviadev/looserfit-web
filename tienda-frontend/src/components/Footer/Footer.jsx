@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getBrandConfig } from '../../config/siteConfig'
+import { crearSolicitudArrepentimiento } from '../../services/api'
 import { useBrand } from '../../context/BrandContext'
 import './Footer.css'
 
@@ -141,7 +142,9 @@ export default function Footer() {
   const [arrExito, setArrExito] = useState(null)
   const [arrError, setArrError] = useState('')
 
-  const handleArrepentimientoSubmit = (e) => {
+  const [arrLoading, setArrLoading] = useState(false)
+
+  const handleArrepentimientoSubmit = async (e) => {
     e.preventDefault()
     setArrError('')
 
@@ -150,24 +153,24 @@ export default function Footer() {
       return
     }
 
-    const code = `ARR-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
-    const record = {
-      code,
-      fecha: new Date().toISOString(),
-      nombre: arrNombre.trim(),
-      email: arrEmail.trim(),
-      orden: arrOrden.trim(),
-      telefono: arrTelefono.trim(),
-      motivo: arrMotivo,
-      mensaje: arrMensaje.trim()
-    }
-
     try {
-      const prev = JSON.parse(localStorage.getItem('looserfit_arrepentimientos') || '[]')
-      localStorage.setItem('looserfit_arrepentimientos', JSON.stringify([record, ...prev]))
-    } catch { /* ignore */ }
+      setArrLoading(true)
+      const resp = await crearSolicitudArrepentimiento({
+        customerName: arrNombre.trim(),
+        customerEmail: arrEmail.trim(),
+        orderNumber: arrOrden.trim(),
+        customerPhone: arrTelefono.trim(),
+        reason: arrMotivo,
+        message: arrMensaje.trim(),
+        brandSlug: brand?.slug || 'fit'
+      })
 
-    setArrExito(record)
+      setArrExito(resp.solicitud)
+    } catch (err) {
+      setArrError(err.message || 'No se pudo registrar la solicitud. Por favor verificá los datos.')
+    } finally {
+      setArrLoading(false)
+    }
   }
 
   const resetArrepentimiento = () => {
@@ -247,10 +250,10 @@ export default function Footer() {
 
         </div>
 
-        {/* ── BARRA DESTACADA: BOTÓN DE ARREPENTIMIENTO (Resolución 424/2020 SCI) ── */}
+        {/* ── BARRA DESTACADA: BOTÓN DE ARREPENTIMIENTO (Disposición 954/2025) ── */}
         <div className="footer__arrepentimiento-bar">
           <div className="footer__arrepentimiento-info">
-            <span className="footer__arrepentimiento-tag">Defensa del Consumidor · Res. 424/2020</span>
+            <span className="footer__arrepentimiento-tag">Defensa del Consumidor · Disp. 954/2025</span>
             <p className="footer__arrepentimiento-desc">
               ¿Compraste y querés cancelar tu pedido? Tenés 10 días corridos desde recibido el producto para revocar tu compra sin costo.
             </p>
@@ -289,7 +292,7 @@ export default function Footer() {
             <div className="footer-modal__header">
               <div>
                 <span className="footer-modal__badge">
-                  {infoOpen === 'arrepentimiento' ? 'Ley N° 24.240 · Res. 424/2020' : INFOS[infoOpen]?.badge}
+                  {infoOpen === 'arrepentimiento' ? 'Ley N° 24.240 · Disposición 954/2025 y Disp. 3/2026' : INFOS[infoOpen]?.badge}
                 </span>
                 <h3 className="footer-modal__title">
                   {infoOpen === 'arrepentimiento' ? 'Botón de Arrepentimiento' : INFOS[infoOpen]?.title}
@@ -306,14 +309,14 @@ export default function Footer() {
                     <div className="arrepentimiento-success__icon">✓</div>
                     <h4>Solicitud de Arrepentimiento Registrada</h4>
                     <p className="arrepentimiento-success__text">
-                      Conforme al Art. 34 de la Ley N° 24.240 y la Res. 424/2020, hemos generado tu número de trámite oficial:
+                      Conforme al Art. 34 de la Ley N° 24.240 y la Disposición 954/2025, hemos registrado tu solicitud con código identificador oficial:
                     </p>
                     <div className="arrepentimiento-success__code-box">
                       <span className="arrepentimiento-success__code-label">Código de Trámite:</span>
-                      <strong className="arrepentimiento-success__code">{arrExito.code}</strong>
+                      <strong className="arrepentimiento-success__code">{arrExito.requestNumber}</strong>
                     </div>
                     <p className="arrepentimiento-success__notice">
-                      Te contactaremos dentro de las <strong>24 horas hábiles</strong> a <strong>{arrExito.email}</strong> para coordinar el retiro/envío del producto y el reintegro total del dinero sin costo alguno.
+                      Te contactaremos dentro de las <strong>24 horas hábiles</strong> a <strong>{arrExito.customerEmail}</strong> para coordinar el retiro/envío del producto y el reintegro total del dinero sin costo alguno.
                     </p>
                     <button type="button" className="btn btn--primary" onClick={resetArrepentimiento} style={{ width: '100%', marginTop: '1rem' }}>
                       Entendido / Cerrar
@@ -403,8 +406,8 @@ export default function Footer() {
                       <button type="button" className="btn btn--secondary" onClick={resetArrepentimiento}>
                         Cancelar
                       </button>
-                      <button type="submit" className="btn btn--primary">
-                        Enviar solicitud de arrepentimiento
+                      <button type="submit" className="btn btn--primary" disabled={arrLoading}>
+                        {arrLoading ? 'Registrando solicitud...' : 'Enviar solicitud de arrepentimiento'}
                       </button>
                     </div>
                   </form>

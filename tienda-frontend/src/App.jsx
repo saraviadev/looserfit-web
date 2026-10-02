@@ -22,6 +22,7 @@ import AdminPedidos from './pages/Admin/AdminPedidos'
 import AdminPedido from './pages/Admin/AdminPedido'
 import AdminHome from './pages/Admin/AdminHome'
 import AdminNewsletter from './pages/Admin/AdminNewsletter'
+import AdminArrepentimientos from './pages/Admin/AdminArrepentimientos'
 import Carrito from './pages/Carrito/Carrito'
 import AuthModal from './components/AuthModal/AuthModal'
 import Checkout from './pages/Checkout/Checkout'
@@ -331,6 +332,7 @@ function App() {
         <Route path="home" element={<AdminHome />} />
         <Route path="pedidos" element={<AdminPedidos />} />
         <Route path="pedidos/:id" element={<AdminPedido />} />
+        <Route path="arrepentimientos" element={<AdminArrepentimientos />} />
         <Route path="newsletter" element={<AdminNewsletter />} />
       </Route>
 
