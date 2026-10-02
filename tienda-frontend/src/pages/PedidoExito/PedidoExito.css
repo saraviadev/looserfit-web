@@ -1,59 +1,557 @@
-.pedido-exito-page {
-  margin-top: 64px;
-  padding: 4rem 0;
+/* ==============================================================================
+   PEDIDO ÉXITO — DISEÑO CLEAN Y MINIMALISTA (LOOSERFIT)
+   ============================================================================== */
+
+.order-success-wrapper {
+  margin-top: 72px;
+  padding: 3.5rem 1rem 5rem;
+  background: #fbfbfb;
+  min-height: calc(100vh - 72px);
+  display: flex;
+  justify-content: center;
 }
 
-.pedido-exito-card {
-  border: var(--border-thin);
-  background: var(--white);
-  max-width: 680px;
-  margin: 0 auto;
-  padding: 2rem;
+.order-success-container {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
-.pedido-exito-card h1 {
+/* 1. Header Minimalista */
+.order-header-clean {
+  text-align: center;
+  padding: 1rem 0 0.5rem;
+}
+
+.order-check-badge {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 1.25rem;
+  background: #0d0d0d;
+  color: #ffffff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+}
+
+.order-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #0d0d0d;
   margin-bottom: 0.4rem;
 }
 
-.pedido-resumen {
-  margin-top: 1rem;
-  border-top: var(--border-thin);
-  border-bottom: var(--border-thin);
-  padding: 1rem 0;
+.order-subtitle {
+  font-size: 0.95rem;
+  color: #666666;
+  margin: 0;
+  line-height: 1.4;
 }
 
-.upload-box {
-  border: 2px dashed #ddd;
-  padding: 2rem;
-  text-align: center;
-  margin-top: 1.5rem;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-  background: #fafafa;
+/* 2. Tarjeta Resumen */
+.order-summary-card {
+  background: #ffffff;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-.upload-box--dragging {
-  border-color: var(--black);
-  background: #f0f0f0;
-  transform: scale(1.02);
-}
-
-.img-comprobante {
-  max-width: 100%;
-  max-height: 300px;
-  object-fit: contain;
-  margin-top: 1rem;
-  border: 1px solid #eee;
-}
-
-.pedido-exito-actions {
+.summary-item {
   display: flex;
-  gap: 0.8rem;
-  margin-top: 2rem;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
+.summary-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #8c8c8c;
+}
+
+.summary-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.summary-value.highlight {
+  font-family: monospace;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+
+.summary-value.price {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0d0d0d;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 20px;
+  width: fit-content;
+}
+
+.status-pill.status-pendiente {
+  background: #fff8eb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.status-pill.status-pagado {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+/* 3. Datos Bancarios */
+.bank-info-card {
+  background: #ffffff;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.bank-card-header {
+  margin-bottom: 1.25rem;
+}
+
+.bank-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.2rem 0.5rem;
+  background: #f4f4f5;
+  color: #52525b;
+  border-radius: 4px;
+}
+
+.bank-instruction {
+  font-size: 0.88rem;
+  color: #4b5563;
+  margin-top: 0.6rem;
+  margin-bottom: 0;
+}
+
+.bank-details-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 1rem 1.15rem;
+}
+
+.bank-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.field-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8c8c8c;
+}
+
+.field-action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.field-content {
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: monospace;
+  color: #111827;
+}
+
+.field-content-subtle {
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.btn-copy-clean {
+  background: #ffffff;
+  border: 1px solid #d4d4d8;
+  color: #18181b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-copy-clean:hover {
+  background: #f4f4f5;
+  border-color: #a1a1aa;
+}
+
+/* 4. Subida de Comprobante */
+.receipt-upload-card {
+  background: #ffffff;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.card-section-title h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.card-section-title p {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0 0 1.25rem;
+}
+
+.clean-dropzone {
+  border: 1.5px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background: #fafafa;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.clean-dropzone:hover,
+.clean-dropzone.dropzone-active {
+  border-color: #0d0d0d;
+  background: #f4f4f5;
+}
+
+.clean-dropzone.has-file {
+  background: #ffffff;
+  border-style: solid;
+  border-color: #e4e4e7;
+  padding: 1.5rem;
+}
+
+.hidden-file-input {
+  display: none;
+}
+
+.dropzone-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.dropzone-icon {
+  color: #71717a;
+  margin-bottom: 0.25rem;
+}
+
+.dropzone-text-main {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #18181b;
+}
+
+.dropzone-text-sub {
+  font-size: 0.78rem;
+  color: #a1a1aa;
+}
+
+.selected-file-pane {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+}
+
+.file-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #f4f4f5;
+  border: 1px solid #e4e4e7;
+  padding: 0.4rem 0.85rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: #18181b;
+}
+
+.file-name {
+  font-weight: 500;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.btn-remove-file {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: #71717a;
+  cursor: pointer;
+  padding: 0;
+}
+
+.btn-remove-file:hover {
+  color: #ef4444;
+}
+
+.btn-submit-receipt {
+  width: 100%;
+  max-width: 360px;
+  background: #0d0d0d;
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.1s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-submit-receipt:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.btn-submit-receipt:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Comprobante Adjuntado Estado */
+.receipt-attached-card {
+  background: #fcfdfc;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.receipt-status-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.verified-dot {
+  width: 10px;
+  height: 10px;
+  background: #22c55e;
+  border-radius: 50%;
+  margin-top: 5px;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.receipt-status-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #15803d;
+  margin: 0;
+}
+
+.receipt-status-desc {
+  font-size: 0.82rem;
+  color: #4b5563;
+  margin: 0.2rem 0 0;
+}
+
+.receipt-preview-clean {
+  text-align: center;
+}
+
+.pdf-preview-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  color: #1f2937;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.pdf-preview-box:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.receipt-image-preview {
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  object-fit: contain;
+}
+
+/* 5. Alertas Clean */
+.clean-alert {
+  padding: 0.65rem 0.85rem;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  margin-top: 0.85rem;
+  text-align: center;
+}
+
+.clean-alert.alert-error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.clean-alert.alert-success {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+/* 6. Registro Invitado */
+.guest-register-card {
+  background: #ffffff;
+  border: 1px solid #eaeaea;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+}
+
+.guest-reg-header h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.2rem;
+}
+
+.guest-reg-header p {
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin: 0 0 0.85rem;
+}
+
+.guest-reg-form {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.clean-input {
+  flex: 1;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.clean-input:focus {
+  border-color: #0d0d0d;
+}
+
+.btn-outline-clean {
+  background: #ffffff;
+  border: 1px solid #0d0d0d;
+  color: #0d0d0d;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.6rem 1.1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.btn-outline-clean:hover:not(:disabled) {
+  background: #0d0d0d;
+  color: #ffffff;
+}
+
+/* 7. Acciones Finales */
+.order-final-actions {
+  display: flex;
+  gap: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.btn-primary-action {
+  flex: 1;
+  text-align: center;
+  background: #0d0d0d;
+  color: #ffffff;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+}
+
+.btn-primary-action:hover {
+  opacity: 0.9;
+}
+
+.btn-secondary-action {
+  flex: 1;
+  text-align: center;
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.btn-secondary-action:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
+
+/* Responsive */
 @media (max-width: 600px) {
-  .pedido-exito-actions {
+  .order-summary-card {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+  .guest-reg-form {
+    flex-direction: column;
+  }
+  .order-final-actions {
     flex-direction: column;
   }
 }

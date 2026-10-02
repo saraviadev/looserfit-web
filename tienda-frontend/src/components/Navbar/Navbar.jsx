@@ -18,6 +18,7 @@ export default function Navbar() {
   const [searchQuery,  setSearchQuery]  = useState('')
   const [authOpen,     setAuthOpen]     = useState(false)
   const { user } = useAuth()
+  const [misPedidos, setMisPedidos] = useState([])
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [lastSeenNotif, setLastSeenNotif] = useState(() => {
     try { return localStorage.getItem('looserfit_last_seen_notif') || '1970-01-01' } catch { return '1970-01-01' }
@@ -45,8 +46,6 @@ export default function Navbar() {
       setLastSeenNotif(now)
     }
   }
-
-  const [misPedidos, setMisPedidos] = useState([])
   const { totalItems } = useCart()
   // Multi-marca: obtener datos de la marca activa
   const { brand } = useBrand()

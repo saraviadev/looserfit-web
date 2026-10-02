@@ -6,7 +6,7 @@ import { useToast } from '../../context/ToastContext'
 import './PedidoExito.css'
 
 export default function PedidoExito() {
-  const { toast } = useToast();
+  const { toast } = useToast()
   const location = useLocation()
   const { state } = location
   const [pedido, setPedido] = useState(state?.pedido || null)
@@ -18,6 +18,7 @@ export default function PedidoExito() {
   const [errorUpload, setErrorUpload] = useState('')
   const [comprobanteUrl, setComprobanteUrl] = useState(state?.pedido?.comprobante || '')
   const [isDragging, setIsDragging] = useState(false)
+  const [copiedField, setCopiedField] = useState(null)
   const { user } = useAuth()
 
   // Registration for guests
@@ -32,7 +33,22 @@ export default function PedidoExito() {
     const params = new URLSearchParams(location.search)
     const orderId = params.get('external_reference') || params.get('orderId') || params.get('id')
 
-    if (!orderId) return
+    if (!orderId) {
+      if (params.get('preview') === 'dev') {
+        setPedido({
+          _id: '68df1e40b793673f4dfbd121',
+          orderNumber: '#026',
+          estado: 'Pendiente',
+          total: 37500,
+          trackingToken: '4adeeb22c63b2bb97fdf5a07bad0ba0f',
+          datosEnvio: {
+            nombreCompleto: 'Juan Pérez',
+            email: 'juan@ejemplo.com'
+          }
+        });
+      }
+      return;
+    }
 
     getPedidoById(orderId)
       .then(data => {
@@ -41,6 +57,13 @@ export default function PedidoExito() {
       })
       .catch(() => setPedidoNotFound(true))
   }, [location.search, pedido])
+
+  const copyToClipboard = (text, field) => {
+    navigator.clipboard.writeText(text)
+    setCopiedField(field)
+    toast.success(`${field} copiado al portapapeles`)
+    setTimeout(() => setCopiedField(null), 2000)
+  }
 
   const handleUpload = async () => {
     if (!file) return toast.warning('Selecciona un archivo primero')
@@ -58,8 +81,11 @@ export default function PedidoExito() {
       setPedido(res.pedido)
       setSuccess(true)
       setFile(null)
-    } catch {
-      setErrorUpload('Error al subir el comprobante.')
+      toast.success('Comprobante recibido correctamente')
+    } catch (err) {
+      const msg = err.response?.data?.mensaje || 'Error al subir el archivo. Verificá que sea un PDF o imagen válido.'
+      setErrorUpload(msg)
+      toast.error(msg)
     } finally {
       setUploading(false)
     }
@@ -85,20 +111,20 @@ export default function PedidoExito() {
     setRegLoading(true)
     setRegError('')
     try {
+      const guestToken = localStorage.getItem('looserfit_guest_token') || pedido?.trackingToken
       const data = await registerFromOrder({
         email: pedido.datosEnvio.email,
         nombre: pedido.datosEnvio.nombreCompleto,
         password,
-        orderId: pedido._id
+        orderId: pedido._id,
+        guestToken
       })
-      // Simular login automático
       localStorage.setItem('looserfit_token', data.token)
       localStorage.setItem('looserfit_user', JSON.stringify(data.user))
-      // Limpiar token de invitado ya que ahora tiene cuenta
       localStorage.removeItem('looserfit_guest_token')
       setRegSuccess(true)
-      // Recargar para que el Nav vea al usuario
-      window.location.reload()
+      toast.success('¡Cuenta creada con éxito!')
+      setTimeout(() => window.location.reload(), 1200)
     } catch (err) {
       setRegError(err.message || 'Error al crear cuenta')
     } finally {
@@ -106,121 +132,242 @@ export default function PedidoExito() {
     }
   }
 
-  const gmailUrl = `mailto:looserfit2004@gmail.com?subject=Comprobante de Pago - Orden ${pedido?.orderNumber || pedido?._id || ''}&body=Hola! Adjunto mi comprobante de pago para la orden ${pedido?.orderNumber || pedido?._id || ''}.`
+  const isPdf = comprobanteUrl && comprobanteUrl.toLowerCase().includes('.pdf')
 
   return (
-    <div className="pedido-exito-page">
-      <div className="container">
-        <div className="pedido-exito-card">
-          <h1>Pedido generado</h1>
-          <p>Tu pedido fue creado correctamente.</p>
+    <div className="order-success-wrapper">
+      <div className="order-success-container">
+        
+        {/* Encabezado Principal Minimalista */}
+        <div className="order-header-clean">
+          <div className="order-check-badge">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <h1 className="order-title">¡Gracias por tu compra!</h1>
+          <p className="order-subtitle">
+            {pedido?.orderNumber 
+              ? `Tu pedido ${pedido.orderNumber} fue generado exitosamente.` 
+              : 'Tu pedido ha sido recibido y se encuentra en proceso.'}
+          </p>
+        </div>
 
-          {pedido && (
-            <div className="pedido-resumen">
-              <p><strong>Orden:</strong> {pedido.orderNumber || '-'} </p>
-              <p><strong>ID:</strong> {pedido._id}</p>
-              <p><strong>Estado:</strong> {pedido.estado}</p>
-              <p><strong>Total:</strong> ${Number(pedido.total).toLocaleString('es-AR')}</p>
+        {/* Tarjeta de Resumen Compacta */}
+        {pedido && (
+          <div className="order-summary-card">
+            <div className="summary-item">
+              <span className="summary-label">Nº de Orden</span>
+              <span className="summary-value highlight">{pedido.orderNumber || '-'}</span>
             </div>
-          )}
+            <div className="summary-item">
+              <span className="summary-label">Estado</span>
+              <span className={`status-pill status-${(pedido.estado || 'Pendiente').toLowerCase()}`}>
+                {pedido.estado === 'Pendiente' ? 'Pendiente de pago' : pedido.estado}
+              </span>
+            </div>
+            <div className="summary-item">
+              <span className="summary-label">Total a pagar</span>
+              <span className="summary-value price">${Number(pedido.total || 0).toLocaleString('es-AR')}</span>
+            </div>
+          </div>
+        )}
 
-          {/* Sección de comprobante */}
-          <div className="comprobante-section">
-            <hr />
-            <h3>Subir comprobante de pago</h3>
-            {pedidoNotFound && (
-              <p className="error-msg">No se pudo encontrar el pedido. Si llegaste desde Mercado Pago, intenta recargar la página o contactanos.</p>
-            )}
-            {pedido ? (
-              comprobanteUrl ? (
-                <div className="comprobante-preview">
-                  <p className="success-msg">✅ Comprobante ya subido</p>
-                  <img src={comprobanteUrl} alt="Comprobante" className="img-comprobante" />
-                </div>
-              ) : (
-                <div 
-                  className={`upload-box ${isDragging ? 'upload-box--dragging' : ''}`}
-                  onDragOver={onDragOver}
-                  onDragLeave={onDragLeave}
-                  onDrop={onDrop}
-                >
-                  <p><strong>Arrastrá tu comprobante aquí</strong> o seleccioná un archivo.</p>
-                  <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.8rem' }}>
-                    Si pagaste con tarjeta de crédito desde Mercado Pago, no es necesario subir comprobante.
-                  </p>
-                  <input 
-                    type="file" 
-                    id="file-upload"
-                    accept="image/jpeg,image/png,image/webp,application/pdf" 
-                    onChange={(e) => setFile(e.target.files[0])} 
-                    className="file-input"
-                    style={{ display: 'none' }}
-                  />
-                  <label htmlFor="file-upload" className="btn btn-secondary-outline" style={{ marginBottom: '0.8rem', display: 'inline-block', cursor: 'pointer' }}>
-                    {file ? `Archivo: ${file.name}` : 'Seleccionar archivo'}
-                  </label>
-
-                  {errorUpload && <p className="error-msg">{errorUpload}</p>}
-                  {success && <p className="success-msg">¡Subido con éxito!</p>}
-                  
+        {/* Datos Bancarios Claros y Elegantes */}
+        {(!comprobanteUrl || pedido?.estado === 'Pendiente') && (
+          <div className="bank-info-card">
+            <div className="bank-card-header">
+              <span className="bank-badge">TRANSFERENCIA BANCARIA</span>
+              <p className="bank-instruction">Realizá la transferencia con los siguientes datos:</p>
+            </div>
+            
+            <div className="bank-details-grid">
+              <div className="bank-field">
+                <span className="field-name">Alias</span>
+                <div className="field-action-row">
+                  <span className="field-content">LOOSERFIT.ARG</span>
                   <button 
-                    onClick={handleUpload} 
-                    className="btn btn-filled" 
-                    style={{ width: '100%' }}
-                    disabled={uploading || !file}
+                    type="button" 
+                    className="btn-copy-clean" 
+                    onClick={() => copyToClipboard('LOOSERFIT.ARG', 'Alias')}
                   >
-                    {uploading ? 'Subiendo...' : 'Confirmar y Subir'}
+                    {copiedField === 'Alias' ? '✓ Copiado' : 'Copiar'}
                   </button>
                 </div>
-              )
-            ) : (
-              <p>Estamos buscando tu pedido. Si el problema persiste, volvé a cargar la página o contactanos.</p>
-            )}
+              </div>
+
+              <div className="bank-field">
+                <span className="field-name">CBU</span>
+                <div className="field-action-row">
+                  <span className="field-content">0000003100085429183492</span>
+                  <button 
+                    type="button" 
+                    className="btn-copy-clean" 
+                    onClick={() => copyToClipboard('0000003100085429183492', 'CBU')}
+                  >
+                    {copiedField === 'CBU' ? '✓ Copiado' : 'Copiar'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bank-field-full">
+                <span className="field-name">Titular / Banco</span>
+                <span className="field-content-subtle">LooserFit Argentina · Mercado Pago / Banco Santander</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Zona de Carga de Comprobante Minimalista */}
+        <div className="receipt-upload-card">
+          <div className="card-section-title">
+            <h3>Comprobante de Pago</h3>
+            <p>Subí tu transferencia en PDF, JPG o PNG para verificar la acreditación.</p>
           </div>
 
-          {/* Registro Post-Compra para invitados */}
-          {!user && pedido && !regSuccess && (
-            <div className="registration-section">
-              <hr />
-              <h3>¿Querés seguir tu pedido y guardar tus datos?</h3>
-              <p style={{ fontSize: '0.9rem', color: '#666', marginBottom: '1.2rem' }}>
-                Creá una cuenta en 1 segundo ingresando una contraseña.
-              </p>
-              <form onSubmit={handleRegister} className="reg-inline-form">
+          {pedidoNotFound && (
+            <div className="clean-alert alert-error">
+              No se encontró la orden especificada. Por favor contactanos si realizaste el pago.
+            </div>
+          )}
+
+          {pedido ? (
+            comprobanteUrl ? (
+              <div className="receipt-attached-card">
+                <div className="receipt-status-header">
+                  <span className="verified-dot"></span>
+                  <div>
+                    <h4 className="receipt-status-title">Comprobante adjuntado</h4>
+                    <p className="receipt-status-desc">Estamos verificando la acreditación. Te notificaremos por email.</p>
+                  </div>
+                </div>
+
+                <div className="receipt-preview-clean">
+                  {isPdf ? (
+                    <a 
+                      href={comprobanteUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="pdf-preview-box"
+                    >
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14 2 14 8 20 8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10 9 9 9 8 9" />
+                      </svg>
+                      <span>Ver Comprobante PDF</span>
+                    </a>
+                  ) : (
+                    <a href={comprobanteUrl} target="_blank" rel="noopener noreferrer">
+                      <img src={comprobanteUrl} alt="Comprobante" className="receipt-image-preview" />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div 
+                className={`clean-dropzone ${isDragging ? 'dropzone-active' : ''} ${file ? 'has-file' : ''}`}
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
+              >
                 <input 
-                  type="password" 
-                  placeholder="Elegí una contraseña" 
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  className="reg-input"
-                  required
+                  type="file" 
+                  id="receipt-file-input"
+                  accept="image/jpeg,image/png,image/webp,application/pdf" 
+                  onChange={(e) => setFile(e.target.files[0])} 
+                  className="hidden-file-input"
                 />
-                <button type="submit" className="btn btn-filled" disabled={regLoading}>
-                  {regLoading ? 'Creando...' : 'Crear mi cuenta'}
-                </button>
-              </form>
-              {regError && <p className="error-msg" style={{ marginTop: '0.5rem' }}>{regError}</p>}
-            </div>
-          )}
 
-          {regSuccess && (
-            <div className="registration-section success-box">
-              <hr />
-              <p className="success-msg">✅ ¡Cuenta creada con éxito! Ya podés ver tus pedidos en tu perfil.</p>
-            </div>
-          )}
+                {!file ? (
+                  <label htmlFor="receipt-file-input" className="dropzone-label">
+                    <div className="dropzone-icon">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                      </svg>
+                    </div>
+                    <span className="dropzone-text-main">Hacé click o arrastrá tu comprobante aquí</span>
+                    <span className="dropzone-text-sub">Formatos admitidos: PDF, JPG, PNG o WebP (hasta 5 MB)</span>
+                  </label>
+                ) : (
+                  <div className="selected-file-pane">
+                    <div className="file-pill">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                        <polyline points="13 2 13 9 20 9" />
+                      </svg>
+                      <span className="file-name">{file.name}</span>
+                      <button type="button" className="btn-remove-file" onClick={() => setFile(null)}>×</button>
+                    </div>
+                    
+                    <button 
+                      onClick={handleUpload} 
+                      className="btn-submit-receipt"
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <>
+                          <span className="spinner-sm"></span> Subiendo comprobante...
+                        </>
+                      ) : (
+                        'Confirmar y Subir Comprobante'
+                      )}
+                    </button>
+                  </div>
+                )}
 
-          <div className="pedido-exito-actions">
-            {!comprobanteUrl ? (
-              <p className="mandatory-msg">⚠️ Debes subir el comprobante de pago para finalizar el proceso y que podamos preparar tu pedido.</p>
-            ) : (
-              <>
-                <a href={gmailUrl} className="btn btn-filled" style={{ background: '#ea4335', borderColor: '#ea4335' }}>Mandar por Gmail</a>
-                <Link to="/tienda" className="btn">Volver a tienda</Link>
-              </>
-            )}
-          </div>
+                {errorUpload && <p className="clean-alert alert-error">{errorUpload}</p>}
+                {success && <p className="clean-alert alert-success">¡Comprobante subido con éxito!</p>}
+              </div>
+            )
+          ) : (
+            <div className="clean-skeleton">Cargando información del pedido...</div>
+          )}
         </div>
+
+        {/* Registro Opcional Sutil para Invitados */}
+        {!user && pedido && !regSuccess && (
+          <div className="guest-register-card">
+            <div className="guest-reg-header">
+              <h4>Creá tu cuenta para consultar el envío</h4>
+              <p>Guardá tu contraseña para acceder a tus pedidos cuando quieras.</p>
+            </div>
+            <form onSubmit={handleRegister} className="guest-reg-form">
+              <input 
+                type="password" 
+                placeholder="Elegí una contraseña (mínimo 6 caracteres)" 
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                className="clean-input"
+                required
+              />
+              <button type="submit" className="btn-outline-clean" disabled={regLoading}>
+                {regLoading ? 'Creando...' : 'Crear cuenta'}
+              </button>
+            </form>
+            {regError && <p className="clean-alert alert-error">{regError}</p>}
+          </div>
+        )}
+
+        {/* Botones de Navegación Finales */}
+        <div className="order-final-actions">
+          {pedido?.trackingToken && (
+            <Link 
+              to={`/seguimiento/${pedido.trackingToken}?preview=dev`} 
+              className="btn-primary-action"
+            >
+              Consultar Seguimiento
+            </Link>
+          )}
+          <Link to="/tienda?preview=dev" className="btn-secondary-action">
+            Volver a la Tienda
+          </Link>
+        </div>
+
       </div>
     </div>
   )
