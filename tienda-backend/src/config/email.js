@@ -418,8 +418,10 @@ async function enviarEmailArrepentimiento(datos, solicitud) {
             </p>`
         );
 
+        const adminNotificationEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'looserfit2004@gmail.com';
         await sendEmail({
             to: solicitud.customerEmail || datos.customerEmail,
+            bcc: [adminNotificationEmail],
             subject: `Solicitud de Arrepentimiento ${solicitud.requestNumber} — ${siteName}`,
             html
         });

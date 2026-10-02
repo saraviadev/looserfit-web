@@ -75,7 +75,6 @@ export default function BrandLogoSwitcher() {
         to={currentSlug === 'fit' ? '/' : '/sport'}
         aria-label={`Ir al inicio de ${currentConfig.name}`}
         className="brand-logo-front"
-        style={{ pointerEvents: 'none' }} /* Evita click en el activo para no cambiar */
       >
         <img
           src={currentConfig.assets.logo}

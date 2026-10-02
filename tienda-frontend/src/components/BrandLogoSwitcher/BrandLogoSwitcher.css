@@ -18,8 +18,8 @@
   justify-content: center;
   transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
   /* Ajustar hitboxes estrictamente a la forma del logo circular para evitar falsos hovers */
-  border-radius: 50%;
-  clip-path: circle(48% at 50% 50%);
+  /* border-radius: 50%; */
+  /* clip-path: circle(48% at 50% 50%); */
 }
 
 .brand-logo-back {
@@ -34,7 +34,7 @@
   opacity: 1;
   z-index: 10;
   transform: translateX(0px) scale(1) rotate(0deg);
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  /* filter: drop-shadow; */
 }
 
 .brand-img {

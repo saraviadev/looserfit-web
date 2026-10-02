@@ -15,7 +15,7 @@ const BRAND_CONFIGS = {
     contact: {
       email: 'hola@looserfit.com',
       address: 'Buenos Aires, Argentina',
-      cuit: '[CUIT EN TRÁMITE - RESPONSABLE A DESIGNAR]',
+      cuit: '',
       razonSocial: 'Looser Fit Indumentaria',
       defensaConsumidorUrl: 'https://www.argentina.gob.ar/produccion/defensadelconsumidor/formulario',
     },

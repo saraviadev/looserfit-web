@@ -46,7 +46,7 @@ const INFOS = {
       },
       {
         heading: 'Plazos de despacho y entrega',
-        text: 'Los pedidos se preparan y despachan dentro de las 24 a 72 horas hábiles posteriores a la confirmación del pago. Una vez despachado, el tiempo de entrega habitual de Correo Argentino oscila entre 3 y 6 días hábiles según la localidad de destino.'
+        text: 'Los pedidos se despachan al siguiente día hábil posterior a la acreditación del pago (las compras realizadas durante el fin de semana se despachan lunes o martes). Una vez despachado, el tiempo de entrega habitual de Correo Argentino oscila entre 3 y 6 días hábiles según la localidad de destino.'
       },
       {
         heading: 'Seguimiento en tiempo real',
@@ -55,7 +55,7 @@ const INFOS = {
     ]
   },
   'cambios': {
-    title: 'Cambios y Garantía Legal',
+    title: 'Garantía Legal',
     badge: 'Ley N° 24.240',
     sections: [
       {
@@ -63,16 +63,8 @@ const INFOS = {
         text: 'Todas nuestras prendas cuentan con garantía legal conforme a la Ley N° 24.240 de Defensa del Consumidor por cualquier falla, rotura o defecto de confección.'
       },
       {
-        heading: 'Cambios por talle o modelo',
-        text: 'Podés solicitar el cambio dentro de los 15 días corridos posteriores a la recepción de la prenda. La prenda debe encontrarse sin uso, sin manchas, con sus etiquetas colocadas y en su empaque original.'
-      },
-      {
-        heading: 'Costos de envío en cambios',
-        text: 'Si el cambio es por falla de fábrica o error en el despacho, todos los costos de envío corren 100% por nuestra cuenta. Si el cambio es por elección de talle o preferencia del cliente, los costos logísticos de reenvío corren a cargo del comprador.'
-      },
-      {
-        heading: 'Cómo iniciar un cambio',
-        text: 'Escribinos por mensaje directo a nuestro Instagram oficial o a nuestro email con tu número de orden y fotos de la prenda para coordinar de inmediato.'
+        heading: 'Prendas con detalles informados',
+        text: 'Nuestras prendas se publican con sus medidas exactas y fotos claras de sus particularidades. Al tratarse de piezas únicas cuyas características se exhiben detalladamente antes de la compra, los detalles previamente informados no constituyen motivo de cambio.'
       }
     ]
   },
@@ -212,7 +204,7 @@ export default function Footer() {
             <ul>
               <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('como-comprar')}>Cómo comprar</button></li>
               <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('envios')}>Envíos y Logística</button></li>
-              <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('cambios')}>Cambios y Garantía</button></li>
+              <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('cambios')}>Garantía Legal</button></li>
             </ul>
           </div>
 
@@ -271,7 +263,7 @@ export default function Footer() {
         <div className="footer-content">
           <p>© {new Date().getFullYear()} {config.name} ({config.contact?.razonSocial || 'Looser Fit'}) — Todos los derechos reservados · República Argentina</p>
           <p className="footer__fiscal-info" style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.3rem' }}>
-            CUIT: {config.contact?.cuit || '[EN TRÁMITE]'} · Domicilio: {config.contact?.address} · 
+            {config.contact?.cuit ? `CUIT: ${config.contact.cuit} · ` : ''}Domicilio: {config.contact?.address} · 
             <a href="https://www.argentina.gob.ar/produccion/defensadelconsumidor/formulario" target="_blank" rel="noreferrer" className="defensa-consumidor-link" style={{ marginLeft: '0.4rem', textDecoration: 'underline' }}>
               Defensa del Consumidor (Ley 24.240) ↗
             </a>
@@ -384,10 +376,8 @@ export default function Footer() {
                     <div className="arrepentimiento-field">
                       <label>Motivo de la revocación</label>
                       <select value={arrMotivo} onChange={e => setArrMotivo(e.target.value)}>
-                        <option value="Me arrepentí de la compra">Me arrepentí de la compra (derecho de revocación)</option>
-                        <option value="Producto con falla o defecto">Producto con falla o defecto de fábrica</option>
-                        <option value="Disconformidad con el talle o medidas">Disconformidad con el talle o medidas</option>
-                        <option value="Error en la entrega o demora">Error en la entrega o demora de envío</option>
+                        <option value="Me arrepentí de la compra">Revocación de compra dentro del plazo legal (10 días)</option>
+                        <option value="Demora en la entrega">Demora excesiva en la entrega</option>
                         <option value="Otro motivo">Otro motivo</option>
                       </select>
                     </div>
