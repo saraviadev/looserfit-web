@@ -13,6 +13,7 @@ const adminRoutes = require('./src/routes/adminRoutes');
 const paymentRoutes = require('./src/routes/paymentRoutes');
 const categoryRoutes = require('./src/routes/categoryRoutes');
 const brandRoutes = require('./src/routes/brandRoutes'); // Multi-marca: rutas de brand
+const arrepentimientoRoutes = require('./src/routes/arrepentimientoRoutes');
 const { detectBrand } = require('./src/middleware/brandMiddleware'); // Multi-marca: middleware
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/arrepentimientos', arrepentimientoRoutes);
 
 // --- Conexión MongoDB ---
 if (process.env.NODE_ENV !== 'test') {

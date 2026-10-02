@@ -367,7 +367,72 @@ async function enviarEmailNotificacionAdmin(pedido) {
     }
 }
 
+
+/**
+ * Envía confirmación oficial de recepción de Solicitud de Arrepentimiento
+ * Conforme a Disposición 954/2025 y Ley N° 24.240 de Defensa del Consumidor
+ */
+async function enviarEmailArrepentimiento(datos, solicitud) {
+    try {
+        const siteName = process.env.SITE_NAME || 'Looser Fit';
+        const contactEmail = process.env.EMAIL_USER || 'looserfit2004@gmail.com';
+        const fechaFormateada = new Date(solicitud.createdAt || Date.now()).toLocaleDateString('es-AR', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+
+        const html = wrapHTML(
+            `<h2 style="margin:0 0 16px;color:#ffffff;font-size:22px;letter-spacing:-0.5px">Solicitud de Arrepentimiento Registrada</h2>
+            <p style="margin:0 0 12px;color:#cccccc;line-height:1.6">Hola <strong>${solicitud.customerName || datos.customerName}</strong>,</p>
+            <p style="margin:0 0 16px;color:#cccccc;line-height:1.6">
+                Te confirmamos que hemos recibido tu solicitud de revocación conforme al <strong>Artículo 34 de la Ley N° 24.240</strong> y la <strong>Disposición 954/2025</strong> de la Subsecretaría de Defensa del Consumidor.
+            </p>
+
+            <div style="background:#1a1a1a;border:1px solid #333333;border-radius:8px;padding:16px;margin:20px 0">
+                <table width="100%" cellpadding="6" cellspacing="0" style="color:#e0e0e0;font-size:14px">
+                    <tr>
+                        <td width="40%" style="color:#888888"><strong>Código Oficial:</strong></td>
+                        <td><span style="display:inline-block;background:#333;color:#00e5ff;font-family:monospace;font-size:16px;font-weight:700;padding:4px 10px;border-radius:4px">${solicitud.requestNumber}</span></td>
+                    </tr>
+                    <tr>
+                        <td style="color:#888888"><strong>Pedido Asociado:</strong></td>
+                        <td><strong>${solicitud.orderNumber || datos.orderNumber || 'No especificado'}</strong></td>
+                    </tr>
+                    <tr>
+                        <td style="color:#888888"><strong>Fecha y Hora:</strong></td>
+                        <td>${fechaFormateada} hs</td>
+                    </tr>
+                    <tr>
+                        <td style="color:#888888"><strong>Estado Inicial:</strong></td>
+                        <td><span style="color:#ffb74d">● Recibido</span></td>
+                    </tr>
+                </table>
+            </div>
+
+            <p style="margin:0 0 12px;color:#cccccc;line-height:1.6">
+                <strong>Plazo de respuesta:</strong> Conforme al marco legal vigente, dentro de las <strong>24 horas hábiles</strong> siguientes nos pondremos en contacto por este mismo medio para coordinar la devolución del producto y el reintegro total del importe abonado sin costo alguno para vos.
+            </p>
+
+            <p style="margin:20px 0 0;font-size:12px;color:#777777;border-top:1px solid #2a2a2a;padding-top:12px">
+                Ante cualquier duda podés responder directamente a este correo o contactarnos a ${contactEmail}.
+            </p>`
+        );
+
+        await sendEmail({
+            to: solicitud.customerEmail || datos.customerEmail,
+            subject: `Solicitud de Arrepentimiento ${solicitud.requestNumber} — ${siteName}`,
+            html
+        });
+
+        console.log(`✅ Email de confirmación de arrepentimiento enviado (${solicitud.requestNumber})`);
+        return true;
+    } catch (err) {
+        console.error(`❌ [Email Error] tipo: Arrepentimiento | solicitud: ${solicitud?.requestNumber || 'N/A'} | error:`, err.message);
+        return false;
+    }
+}
+
 module.exports = {
+    enviarEmailArrepentimiento,
     transporter,
     sendEmail,
     wrapHTML,
