@@ -35,19 +35,20 @@ export default function PedidoExito() {
 
     if (!orderId) {
       if (params.get('preview') === 'dev') {
+        // Mock demo order for visual preview
         setPedido({
-          _id: '68df1e40b793673f4dfbd121',
-          orderNumber: '#026',
+          _id: 'sample_dev_id',
+          orderNumber: '#028',
           estado: 'Pendiente',
           total: 37500,
-          trackingToken: '4adeeb22c63b2bb97fdf5a07bad0ba0f',
+          trackingToken: 'dev_preview_token_123',
           datosEnvio: {
             nombreCompleto: 'Juan Pérez',
             email: 'juan@ejemplo.com'
           }
-        });
+        })
       }
-      return;
+      return
     }
 
     getPedidoById(orderId)
@@ -61,13 +62,27 @@ export default function PedidoExito() {
   const copyToClipboard = (text, field) => {
     navigator.clipboard.writeText(text)
     setCopiedField(field)
-    toast.success(`${field} copiado al portapapeles`)
+    toast.success(`${field} copiado: ${text}`)
     setTimeout(() => setCopiedField(null), 2000)
   }
 
   const handleUpload = async () => {
     if (!file) return toast.warning('Selecciona un archivo primero')
     if (!pedido) return setErrorUpload('No se pudo identificar el pedido.')
+
+    // Simulation for preview mode
+    if (pedido._id === 'sample_dev_id' || pedido._id === '68df1e40b793673f4dfbd121') {
+      setUploading(true)
+      setTimeout(() => {
+        const dummyUrl = URL.createObjectURL(file)
+        setComprobanteUrl(dummyUrl)
+        setSuccess(true)
+        setFile(null)
+        setUploading(false)
+        toast.success('Comprobante recibido correctamente')
+      }, 500)
+      return
+    }
 
     setUploading(true)
     setErrorUpload('')
@@ -76,14 +91,15 @@ export default function PedidoExito() {
     formData.append('comprobante', file)
 
     try {
-      const res = await subirComprobante(pedido._id, formData)
-      setComprobanteUrl(res.pedido.comprobante)
-      setPedido(res.pedido)
+      const guestToken = localStorage.getItem('looserfit_guest_token') || pedido.trackingToken
+      const res = await subirComprobante(pedido._id, formData, guestToken)
+      setComprobanteUrl(res.pedido?.comprobante || res.comprobante)
+      if (res.pedido) setPedido(res.pedido)
       setSuccess(true)
       setFile(null)
       toast.success('Comprobante recibido correctamente')
     } catch (err) {
-      const msg = err.response?.data?.mensaje || 'Error al subir el archivo. Verificá que sea un PDF o imagen válido.'
+      const msg = err.message || 'Error al procesar el archivo. Verificá que sea un PDF o imagen válido.'
       setErrorUpload(msg)
       toast.error(msg)
     } finally {
@@ -133,6 +149,8 @@ export default function PedidoExito() {
   }
 
   const isPdf = comprobanteUrl && comprobanteUrl.toLowerCase().includes('.pdf')
+  const esPagado = pedido?.estado === 'Pagado'
+  const esPendiente = pedido?.estado === 'Pendiente'
 
   return (
     <div className="order-success-wrapper">
@@ -145,7 +163,9 @@ export default function PedidoExito() {
               <polyline points="20 6 9 17 4 12" />
             </svg>
           </div>
-          <h1 className="order-title">¡Gracias por tu compra!</h1>
+          <h1 className="order-title">
+            {esPagado ? '¡Pago Acreditado!' : '¡Gracias por tu compra!'}
+          </h1>
           <p className="order-subtitle">
             {pedido?.orderNumber 
               ? `Tu pedido ${pedido.orderNumber} fue generado exitosamente.` 
@@ -167,167 +187,169 @@ export default function PedidoExito() {
               </span>
             </div>
             <div className="summary-item">
-              <span className="summary-label">Total a pagar</span>
+              <span className="summary-label">Total</span>
               <span className="summary-value price">${Number(pedido.total || 0).toLocaleString('es-AR')}</span>
             </div>
           </div>
         )}
 
-        {/* Datos Bancarios Claros y Elegantes */}
-        {(!comprobanteUrl || pedido?.estado === 'Pendiente') && (
+        {/* En caso de estar Pagado vía Mercado Pago */}
+        {esPagado && (
+          <div className="clean-alert alert-success" style={{ padding: '1.25rem', textAlign: 'left', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ flexShrink: 0 }}>
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <div>
+              <strong style={{ display: 'block', fontSize: '0.95rem' }}>Pago acreditado y confirmado</strong>
+              <span style={{ fontSize: '0.85rem' }}>Ya estamos preparando tu paquete. No necesitás adjuntar comprobante.</span>
+            </div>
+          </div>
+        )}
+
+        {/* Datos Bancarios Claros y Elegantes (Solo para pedidos pendientes que requieren transferencia) */}
+        {esPendiente && (
           <div className="bank-info-card">
             <div className="bank-card-header">
               <span className="bank-badge">TRANSFERENCIA BANCARIA</span>
-              <p className="bank-instruction">Realizá la transferencia con los siguientes datos:</p>
+              <p className="bank-instruction">Realizá la transferencia con el siguiente alias:</p>
             </div>
             
             <div className="bank-details-grid">
               <div className="bank-field">
                 <span className="field-name">Alias</span>
                 <div className="field-action-row">
-                  <span className="field-content">LOOSERFIT.ARG</span>
+                  <span className="field-content">looser.fit</span>
                   <button 
                     type="button" 
                     className="btn-copy-clean" 
-                    onClick={() => copyToClipboard('LOOSERFIT.ARG', 'Alias')}
+                    onClick={() => copyToClipboard('looser.fit', 'Alias')}
                   >
                     {copiedField === 'Alias' ? '✓ Copiado' : 'Copiar'}
                   </button>
                 </div>
               </div>
 
-              <div className="bank-field">
-                <span className="field-name">CBU</span>
-                <div className="field-action-row">
-                  <span className="field-content">0000003100085429183492</span>
-                  <button 
-                    type="button" 
-                    className="btn-copy-clean" 
-                    onClick={() => copyToClipboard('0000003100085429183492', 'CBU')}
-                  >
-                    {copiedField === 'CBU' ? '✓ Copiado' : 'Copiar'}
-                  </button>
-                </div>
-              </div>
-
               <div className="bank-field-full">
-                <span className="field-name">Titular / Banco</span>
-                <span className="field-content-subtle">LooserFit Argentina · Mercado Pago / Banco Santander</span>
+                <span className="field-name">Titular</span>
+                <span className="field-content-subtle">LooserFit Argentina</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* Zona de Carga de Comprobante Minimalista */}
-        <div className="receipt-upload-card">
-          <div className="card-section-title">
-            <h3>Comprobante de Pago</h3>
-            <p>Subí tu transferencia en PDF, JPG o PNG para verificar la acreditación.</p>
-          </div>
-
-          {pedidoNotFound && (
-            <div className="clean-alert alert-error">
-              No se encontró la orden especificada. Por favor contactanos si realizaste el pago.
+        {/* Zona de Carga de Comprobante (Solo para pedidos pendientes o con comprobante ya adjunto) */}
+        {(!esPagado || comprobanteUrl) && (
+          <div className="receipt-upload-card">
+            <div className="card-section-title">
+              <h3>Comprobante de Pago</h3>
+              <p>Subí tu transferencia en PDF, JPG o PNG para verificar la acreditación.</p>
             </div>
-          )}
 
-          {pedido ? (
-            comprobanteUrl ? (
-              <div className="receipt-attached-card">
-                <div className="receipt-status-header">
-                  <span className="verified-dot"></span>
-                  <div>
-                    <h4 className="receipt-status-title">Comprobante adjuntado</h4>
-                    <p className="receipt-status-desc">Estamos verificando la acreditación. Te notificaremos por email.</p>
+            {pedidoNotFound && (
+              <div className="clean-alert alert-error">
+                No se encontró la orden especificada. Por favor contactanos si realizaste el pago.
+              </div>
+            )}
+
+            {pedido ? (
+              comprobanteUrl ? (
+                <div className="receipt-attached-card">
+                  <div className="receipt-status-header">
+                    <span className="verified-dot"></span>
+                    <div>
+                      <h4 className="receipt-status-title">Comprobante adjuntado</h4>
+                      <p className="receipt-status-desc">Estamos verificando la acreditación. Te notificaremos por email.</p>
+                    </div>
+                  </div>
+
+                  <div className="receipt-preview-clean">
+                    {isPdf ? (
+                      <a 
+                        href={comprobanteUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="pdf-preview-box"
+                      >
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                          <polyline points="14 2 14 8 20 8" />
+                          <line x1="16" y1="13" x2="8" y2="13" />
+                          <line x1="16" y1="17" x2="8" y2="17" />
+                          <polyline points="10 9 9 9 8 9" />
+                        </svg>
+                        <span>Ver Comprobante PDF</span>
+                      </a>
+                    ) : (
+                      <a href={comprobanteUrl} target="_blank" rel="noopener noreferrer">
+                        <img src={comprobanteUrl} alt="Comprobante" className="receipt-image-preview" />
+                      </a>
+                    )}
                   </div>
                 </div>
+              ) : (
+                <div 
+                  className={`clean-dropzone ${isDragging ? 'dropzone-active' : ''} ${file ? 'has-file' : ''}`}
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop}
+                >
+                  <input 
+                    type="file" 
+                    id="receipt-file-input"
+                    accept="image/jpeg,image/png,image/webp,application/pdf" 
+                    onChange={(e) => setFile(e.target.files[0])} 
+                    className="hidden-file-input"
+                  />
 
-                <div className="receipt-preview-clean">
-                  {isPdf ? (
-                    <a 
-                      href={comprobanteUrl} 
-                      target="_blank" 
-                      rel="noopener noreferrer" 
-                      className="pdf-preview-box"
-                    >
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                        <polyline points="14 2 14 8 20 8" />
-                        <line x1="16" y1="13" x2="8" y2="13" />
-                        <line x1="16" y1="17" x2="8" y2="17" />
-                        <polyline points="10 9 9 9 8 9" />
-                      </svg>
-                      <span>Ver Comprobante PDF</span>
-                    </a>
+                  {!file ? (
+                    <label htmlFor="receipt-file-input" className="dropzone-label">
+                      <div className="dropzone-icon">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                      </div>
+                      <span className="dropzone-text-main">Hacé click o arrastrá tu comprobante aquí</span>
+                      <span className="dropzone-text-sub">Formatos admitidos: PDF, JPG, PNG o WebP (hasta 5 MB)</span>
+                    </label>
                   ) : (
-                    <a href={comprobanteUrl} target="_blank" rel="noopener noreferrer">
-                      <img src={comprobanteUrl} alt="Comprobante" className="receipt-image-preview" />
-                    </a>
+                    <div className="selected-file-pane">
+                      <div className="file-pill">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+                          <polyline points="13 2 13 9 20 9" />
+                        </svg>
+                        <span className="file-name">{file.name}</span>
+                        <button type="button" className="btn-remove-file" onClick={() => setFile(null)}>×</button>
+                      </div>
+                      
+                      <button 
+                        onClick={handleUpload} 
+                        className="btn-submit-receipt"
+                        disabled={uploading}
+                      >
+                        {uploading ? (
+                          <>
+                            <span className="spinner-sm"></span> Subiendo comprobante...
+                          </>
+                        ) : (
+                          'Confirmar y Subir Comprobante'
+                        )}
+                      </button>
+                    </div>
                   )}
+
+                  {errorUpload && <p className="clean-alert alert-error">{errorUpload}</p>}
+                  {success && <p className="clean-alert alert-success">¡Comprobante subido con éxito!</p>}
                 </div>
-              </div>
+              )
             ) : (
-              <div 
-                className={`clean-dropzone ${isDragging ? 'dropzone-active' : ''} ${file ? 'has-file' : ''}`}
-                onDragOver={onDragOver}
-                onDragLeave={onDragLeave}
-                onDrop={onDrop}
-              >
-                <input 
-                  type="file" 
-                  id="receipt-file-input"
-                  accept="image/jpeg,image/png,image/webp,application/pdf" 
-                  onChange={(e) => setFile(e.target.files[0])} 
-                  className="hidden-file-input"
-                />
-
-                {!file ? (
-                  <label htmlFor="receipt-file-input" className="dropzone-label">
-                    <div className="dropzone-icon">
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" y1="3" x2="12" y2="15" />
-                      </svg>
-                    </div>
-                    <span className="dropzone-text-main">Hacé click o arrastrá tu comprobante aquí</span>
-                    <span className="dropzone-text-sub">Formatos admitidos: PDF, JPG, PNG o WebP (hasta 5 MB)</span>
-                  </label>
-                ) : (
-                  <div className="selected-file-pane">
-                    <div className="file-pill">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
-                        <polyline points="13 2 13 9 20 9" />
-                      </svg>
-                      <span className="file-name">{file.name}</span>
-                      <button type="button" className="btn-remove-file" onClick={() => setFile(null)}>×</button>
-                    </div>
-                    
-                    <button 
-                      onClick={handleUpload} 
-                      className="btn-submit-receipt"
-                      disabled={uploading}
-                    >
-                      {uploading ? (
-                        <>
-                          <span className="spinner-sm"></span> Subiendo comprobante...
-                        </>
-                      ) : (
-                        'Confirmar y Subir Comprobante'
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {errorUpload && <p className="clean-alert alert-error">{errorUpload}</p>}
-                {success && <p className="clean-alert alert-success">¡Comprobante subido con éxito!</p>}
-              </div>
-            )
-          ) : (
-            <div className="clean-skeleton">Cargando información del pedido...</div>
-          )}
-        </div>
+              <div className="clean-skeleton">Cargando información del pedido...</div>
+            )}
+          </div>
+        )}
 
         {/* Registro Opcional Sutil para Invitados */}
         {!user && pedido && !regSuccess && (

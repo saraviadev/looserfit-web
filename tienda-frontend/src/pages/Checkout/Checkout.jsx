@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { useAuth } from '../../context/AuthContext'
 import { crearPedidoConBrand, crearPreferenciaPago } from '../../services/api'
@@ -14,6 +14,8 @@ const PROVINCIAS = [
 ]
 
 export default function Checkout() {
+  const navigate = useNavigate()
+  const [metodoPago, setMetodoPago] = useState('mercadopago')
 
   const { user } = useAuth()
   const { items, subtotal, clearCart } = useCart()
@@ -110,19 +112,28 @@ export default function Checkout() {
 
     try {
       setLoading(true)
-      const resp = await crearPedidoConBrand(pedidoData)
-      
-      // Creamos la preferencia de Mercado Pago con validación de ownership
-      const preference = await crearPreferenciaPago(resp.pedido._id, resp.pedido.trackingToken)
+      const resp = await crearPedidoConBrand({
+        ...pedidoData,
+        paymentProvider: metodoPago,
+        metodoPago
+      })
       
       // Limpiamos carrito antes de irnos
       clearCart()
 
-      // Si es invitado (o incluso si es user para redundancia), guardamos el token de seguimiento localmente 
-      // para habilitar la barra de notificaciones sin login
+      // Guardamos el token de seguimiento localmente
       localStorage.setItem('looserfit_guest_token', resp.pedido.trackingToken)
 
-      // Redirigimos al init_point de Mercado Pago
+      if (metodoPago === 'transferencia') {
+        // Redirección directa a Pedido Éxito para abonar por alias y subir comprobante
+        navigate(`/pedido-exito?orderId=${resp.pedido._id}&token=${resp.pedido.trackingToken}`, {
+          state: { pedido: resp.pedido }
+        })
+        return
+      }
+
+      // Flujo Mercado Pago: creamos preferencia y redirigimos
+      const preference = await crearPreferenciaPago(resp.pedido._id, resp.pedido.trackingToken)
       window.location.href = preference.init_point
     } catch (err) {
       console.error('Error en checkout:', err);
@@ -217,6 +228,30 @@ export default function Checkout() {
                 </div>
               )}
 
+              <h2 style={{ marginTop: '1.5rem', marginBottom: '0.8rem' }}>Método de pago</h2>
+              <div className="checkout-radio">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', marginBottom: '0.4rem' }}>
+                  <input 
+                    type="radio" 
+                    name="metodoPago" 
+                    value="mercadopago" 
+                    checked={metodoPago === 'mercadopago'} 
+                    onChange={() => setMetodoPago('mercadopago')} 
+                  />
+                  <span><strong>Mercado Pago</strong> (Tarjetas de crédito/débito, dinero en cuenta)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input 
+                    type="radio" 
+                    name="metodoPago" 
+                    value="transferencia" 
+                    checked={metodoPago === 'transferencia'} 
+                    onChange={() => setMetodoPago('transferencia')} 
+                  />
+                  <span><strong>Transferencia Bancaria Directa</strong> (Alias: <code>looser.fit</code>)</span>
+                </label>
+              </div>
+
             </section>
 
             <aside className="checkout-card">
@@ -241,7 +276,7 @@ export default function Checkout() {
               </div>
               {error && <p className="checkout-error">{error}</p>}
               <button className="btn btn-filled checkout-btn" disabled={loading}>
-                {loading ? 'Confirmando...' : 'Confirmar pedido'}
+                {loading ? 'Procesando...' : (metodoPago === 'transferencia' ? 'Confirmar Pedido (Transferencia)' : 'Pagar con Mercado Pago')}
               </button>
             </aside>
           </div>

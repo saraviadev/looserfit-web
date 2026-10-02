@@ -122,7 +122,9 @@ const createOrder = async (orderData) => {
         orderNumber,
         trackingToken,
         shippingCost,
-        comprobante: orderData.comprobante
+        comprobante: orderData.comprobante,
+        paymentProvider: orderData.paymentProvider || (orderData.metodoPago === 'transferencia' ? 'transferencia' : 'mercadopago'),
+        metodoPago: orderData.metodoPago || (orderData.paymentProvider === 'transferencia' ? 'transferencia' : 'mercadopago')
     });
 
     await nuevoPedido.save();

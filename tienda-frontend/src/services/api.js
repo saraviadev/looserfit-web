@@ -133,15 +133,28 @@ export async function actualizarEstadoPedido(id, estado) {
   return res.json()
 }
 
-export async function subirComprobante(orderId, formData) {
+export async function subirComprobante(orderId, formData, guestToken) {
+  const headers = {}
+  const token = localStorage.getItem('looserfit_token')
+  if (token && token !== 'null' && token !== 'undefined') {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  const effectiveGuestToken = guestToken || localStorage.getItem('looserfit_guest_token')
+  if (effectiveGuestToken) {
+    headers['x-guest-token'] = effectiveGuestToken
+  }
+
   const res = await fetch(`${BASE_URL}/orders/upload-comprobante/${orderId}`, {
     method: 'POST',
-    body: formData, // No seteamos headers de JSON, el navegador lo hace solo para FormData
+    headers,
+    body: formData,
   })
+
+  const data = await res.json().catch(() => null)
   if (!res.ok) {
-    throw new Error('No se pudo subir el comprobante')
+    throw new Error(data?.mensaje || data?.error || 'No se pudo subir el comprobante')
   }
-  return res.json()
+  return data
 }
 
 export async function getMisPedidos() {
