@@ -133,7 +133,25 @@ function PublicGate({ children, homeLoading, comingSoon, onAuthClick, isDevBypas
           boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
           backdropFilter: 'blur(6px)'
         }}>
-          <span>🛠️ Modo DEV (Lanzamiento Omitido)</span>
+          <span>🛠️ Modo DEV (Mantenimiento omitido para pruebas)</span>
+          <button
+            type="button"
+            onClick={() => {
+              try { sessionStorage.removeItem('looser_preview_dev') } catch { /* ignore */ }
+              window.location.href = window.location.pathname + '?preview=off'
+            }}
+            style={{
+              background: '#333',
+              color: '#fff',
+              border: '1px solid #555',
+              borderRadius: '4px',
+              padding: '2px 8px',
+              fontSize: '10px',
+              cursor: 'pointer'
+            }}
+          >
+            Ver Mantenimiento
+          </button>
         </div>
       )}
       {children}
