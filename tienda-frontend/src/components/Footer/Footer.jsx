@@ -1,7 +1,6 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getBrandConfig } from '../../config/siteConfig'
-import { crearSolicitudArrepentimiento } from '../../services/api'
 import { useBrand } from '../../context/BrandContext'
 import './Footer.css'
 
@@ -55,18 +54,9 @@ const INFOS = {
     ]
   },
   'cambios': {
-    title: 'Garantía Legal',
-    badge: 'Ley N° 24.240',
-    sections: [
-      {
-        heading: 'Garantía legal de fabricación',
-        text: 'Todas nuestras prendas cuentan con garantía legal conforme a la Ley N° 24.240 de Defensa del Consumidor por cualquier falla, rotura o defecto de confección.'
-      },
-      {
-        heading: 'Prendas con detalles informados',
-        text: 'Nuestras prendas se publican con sus medidas exactas y fotos claras de sus particularidades. Al tratarse de piezas únicas cuyas características se exhiben detalladamente antes de la compra, los detalles previamente informados no constituyen motivo de cambio.'
-      }
-    ]
+    title: 'Cambios y Devoluciones',
+    badge: 'Política de la tienda',
+    text: 'ANTES DE REALIZAR LA COMPRA, CHEQUEA DETALLADAMENTE LAS MEDIDAS, FOTOS Y ESTADO DE LA PRENDA!!! RECORDÁ QUE NO HAY CAMBIOS NI DEVOLUCIONES <3'
   },
   'terminos': {
     title: 'Términos y Condiciones Generales',
@@ -92,27 +82,19 @@ const INFOS = {
   },
   'privacidad': {
     title: 'Política de Privacidad y Protección de Datos',
-    badge: 'Ley N° 25.326',
+    badge: 'Privacidad',
     sections: [
       {
-        heading: 'Cumplimiento legal y confidencialidad',
-        text: 'En cumplimiento de la Ley N° 25.326 de Protección de los Datos Personales de la República Argentina, te garantizamos que la información suministrada al operar en nuestra tienda se encuentra bajo estricto resguardo y confidencialidad.'
+        heading: 'Confidencialidad y resguardo',
+        text: 'Te garantizamos que la información suministrada al operar en nuestra tienda se encuentra bajo estricto resguardo y confidencialidad.'
       },
       {
-        heading: 'Finalidad de la recolección',
-        text: 'Los datos requeridos (nombre, apellido, DNI, dirección, teléfono, email) son utilizados únicamente para procesar tus pedidos, emitir comprobantes de compra, coordinar los envíos postales y remitirte actualizaciones de tu compra.'
+        heading: 'Finalidad de los datos',
+        text: 'Los datos requeridos (nombre, apellido, DNI, dirección, teléfono, email) son utilizados únicamente para procesar tus pedidos, coordinar los envíos postales y remitirte actualizaciones de tu compra.'
       },
       {
         heading: 'No cesión a terceros',
         text: 'Bajo ninguna circunstancia vendemos, alquilamos ni cedemos tus datos personales a empresas de publicidad o bases de datos comerciales de terceros.'
-      },
-      {
-        heading: 'Derechos ARCO (Acceso, Rectificación, Supresión)',
-        text: 'Como titular de los datos, tenés derecho a acceder a los mismos, solicitar su actualización, rectificación o eliminación definitiva en cualquier momento mediante comunicación por escrito a looserfit2004@gmail.com.'
-      },
-      {
-        heading: 'Órgano de control',
-        text: 'La AGENCIA DE ACCESO A LA INFORMACIÓN PÚBLICA (AAIP), en su carácter de Órgano de Control de la Ley N° 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.'
       }
     ]
   }
@@ -124,73 +106,34 @@ export default function Footer() {
   const config = getBrandConfig(brand?.slug)
   const basePath = brand?.slug === 'sport' ? '/sport' : ''
 
-  // Estado del formulario de arrepentimiento
-  const [arrNombre, setArrNombre] = useState('')
-  const [arrEmail, setArrEmail] = useState('')
-  const [arrOrden, setArrOrden] = useState('')
-  const [arrTelefono, setArrTelefono] = useState('')
-  const [arrMotivo, setArrMotivo] = useState('Me arrepentí de la compra')
-  const [arrMensaje, setArrMensaje] = useState('')
-  const [arrExito, setArrExito] = useState(null)
-  const [arrError, setArrError] = useState('')
-
-  const [arrLoading, setArrLoading] = useState(false)
-
-  const handleArrepentimientoSubmit = async (e) => {
-    e.preventDefault()
-    setArrError('')
-
-    if (!arrNombre.trim() || !arrEmail.trim() || !arrOrden.trim()) {
-      setArrError('Por favor completá los campos obligatorios (Nombre, Email y N° de Orden).')
-      return
-    }
-
-    try {
-      setArrLoading(true)
-      const resp = await crearSolicitudArrepentimiento({
-        customerName: arrNombre.trim(),
-        customerEmail: arrEmail.trim(),
-        orderNumber: arrOrden.trim(),
-        customerPhone: arrTelefono.trim(),
-        reason: arrMotivo,
-        message: arrMensaje.trim(),
-        brandSlug: brand?.slug || 'fit'
-      })
-
-      setArrExito(resp.solicitud)
-    } catch (err) {
-      setArrError(err.message || 'No se pudo registrar la solicitud. Por favor verificá los datos.')
-    } finally {
-      setArrLoading(false)
-    }
-  }
-
-  const resetArrepentimiento = () => {
-    setArrNombre('')
-    setArrEmail('')
-    setArrOrden('')
-    setArrTelefono('')
-    setArrMotivo('Me arrepentí de la compra')
-    setArrMensaje('')
-    setArrExito(null)
-    setArrError('')
-    setInfoOpen(null)
-  }
-
   return (
     <footer className="footer">
       <div className="container">
         <div className="footer__inner">
 
-          {/* Marca / Identidad */}
+          {/* Marca & Logo */}
           <div className="footer__brand">
             <div className="footer__logo-wrap">
-              <img src={config.assets.logo} alt={config.name} className="footer__logo" />
+              <Link to={basePath || '/'} aria-label="Ir al inicio de la tienda">
+                <img
+                  src={config.assets.logo}
+                  alt={config.name}
+                  className="footer__logo"
+                  width="72"
+                  height="72"
+                  loading="lazy"
+                />
+              </Link>
             </div>
-            <p className="footer__location">{config.contact.address}</p>
+            <p className="footer__location">
+              {config.contact?.address || 'Buenos Aires, Argentina'}
+            </p>
+            <p className="footer__brand-desc">
+              {config.tagline || 'Indumentaria urbana y deportiva.'}
+            </p>
           </div>
 
-          {/* Tienda */}
+          {/* Navegación Tienda */}
           <div className="footer__nav">
             <h4 className="footer__nav-title">Tienda</h4>
             <ul>
@@ -204,17 +147,16 @@ export default function Footer() {
             <ul>
               <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('como-comprar')}>Cómo comprar</button></li>
               <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('envios')}>Envíos y Logística</button></li>
-              <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('cambios')}>Garantía Legal</button></li>
+              <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('cambios')}>Cambios y Devoluciones</button></li>
             </ul>
           </div>
 
-          {/* Legales & Normativa */}
+          {/* Legales */}
           <div className="footer__nav">
             <h4 className="footer__nav-title">Legales</h4>
             <ul>
               <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('terminos')}>Términos y Condiciones</button></li>
-              <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('privacidad')}>Privacidad (Ley 25.326)</button></li>
-              <li><button type="button" className="footer__info-btn footer__info-btn--highlight" onClick={() => { setInfoOpen('arrepentimiento'); setArrExito(null); }}>Botón de arrepentimiento</button></li>
+              <li><button type="button" className="footer__info-btn" onClick={() => setInfoOpen('privacidad')}>Privacidad</button></li>
             </ul>
           </div>
 
@@ -242,32 +184,9 @@ export default function Footer() {
 
         </div>
 
-        {/* ── BARRA DESTACADA: BOTÓN DE ARREPENTIMIENTO (Disposición 954/2025) ── */}
-        <div className="footer__arrepentimiento-bar">
-          <div className="footer__arrepentimiento-info">
-            <span className="footer__arrepentimiento-tag">Defensa del Consumidor · Disp. 954/2025</span>
-            <p className="footer__arrepentimiento-desc">
-              ¿Compraste y querés cancelar tu pedido? Tenés 10 días corridos desde recibido el producto para revocar tu compra sin costo.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="footer__arrepentimiento-action"
-            onClick={() => { setInfoOpen('arrepentimiento'); setArrExito(null); }}
-          >
-            <span className="footer__arrepentimiento-icon">↺</span> Botón de arrepentimiento
-          </button>
-        </div>
-
         {/* Copyright & Créditos */}
         <div className="footer-content">
-          <p>© {new Date().getFullYear()} {config.name} ({config.contact?.razonSocial || 'Looser Fit'}) — Todos los derechos reservados · República Argentina</p>
-          <p className="footer__fiscal-info" style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '0.3rem' }}>
-            {config.contact?.cuit ? `CUIT: ${config.contact.cuit} · ` : ''}Domicilio: {config.contact?.address} · 
-            <a href="https://www.argentina.gob.ar/produccion/defensadelconsumidor/formulario" target="_blank" rel="noreferrer" className="defensa-consumidor-link" style={{ marginLeft: '0.4rem', textDecoration: 'underline' }}>
-              Defensa del Consumidor (Ley 24.240) ↗
-            </a>
-          </p>
+          <p>© {new Date().getFullYear()} {config.name} — Todos los derechos reservados · Buenos Aires, Argentina</p>
           <p className="credit">
             Creado por{' '}
             <a href="https://instagram.com/saravia.devv" target="_blank" rel="noreferrer" className="credit__link">
@@ -277,133 +196,24 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* ── MODAL LEGALES / ARREPENTIMIENTO ── */}
+      {/* ── MODAL LEGALES / INFO ── */}
       {infoOpen && (
-        <div className="footer-modal-overlay" onClick={resetArrepentimiento}>
+        <div className="footer-modal-overlay" onClick={() => setInfoOpen(null)}>
           <div className="footer-modal" onClick={e => e.stopPropagation()}>
             <div className="footer-modal__header">
               <div>
                 <span className="footer-modal__badge">
-                  {infoOpen === 'arrepentimiento' ? 'Ley N° 24.240 · Disposición 954/2025 y Disp. 3/2026' : INFOS[infoOpen]?.badge}
+                  {INFOS[infoOpen]?.badge}
                 </span>
                 <h3 className="footer-modal__title">
-                  {infoOpen === 'arrepentimiento' ? 'Botón de Arrepentimiento' : INFOS[infoOpen]?.title}
+                  {INFOS[infoOpen]?.title}
                 </h3>
               </div>
-              <button type="button" className="footer-modal__close" onClick={resetArrepentimiento} aria-label="Cerrar modal">✕</button>
+              <button type="button" className="footer-modal__close" onClick={() => setInfoOpen(null)} aria-label="Cerrar modal">✕</button>
             </div>
 
             <div className="footer-modal__body">
-              {infoOpen === 'arrepentimiento' ? (
-                arrExito ? (
-                  /* ── Pantalla de Confirmación de Arrepentimiento ── */
-                  <div className="arrepentimiento-success">
-                    <div className="arrepentimiento-success__icon">✓</div>
-                    <h4>Solicitud de Arrepentimiento Registrada</h4>
-                    <p className="arrepentimiento-success__text">
-                      Conforme al Art. 34 de la Ley N° 24.240 y la Disposición 954/2025, hemos registrado tu solicitud con código identificador oficial:
-                    </p>
-                    <div className="arrepentimiento-success__code-box">
-                      <span className="arrepentimiento-success__code-label">Código de Trámite:</span>
-                      <strong className="arrepentimiento-success__code">{arrExito.requestNumber}</strong>
-                    </div>
-                    <p className="arrepentimiento-success__notice">
-                      Te contactaremos dentro de las <strong>24 horas hábiles</strong> a <strong>{arrExito.customerEmail}</strong> para coordinar el retiro/envío del producto y el reintegro total del dinero sin costo alguno.
-                    </p>
-                    <button type="button" className="btn btn--primary" onClick={resetArrepentimiento} style={{ width: '100%', marginTop: '1rem' }}>
-                      Entendido / Cerrar
-                    </button>
-                  </div>
-                ) : (
-                  /* ── Formulario de Arrepentimiento ── */
-                  <form onSubmit={handleArrepentimientoSubmit} className="arrepentimiento-form">
-                    <div className="arrepentimiento-form__intro">
-                      <p>
-                        Conforme al <strong>Artículo 34 de la Ley 24.240</strong>, tenés derecho a revocar la aceptación de tu compra durante el plazo de <strong>DIEZ (10) días corridos</strong> contados a partir de la entrega del producto.
-                      </p>
-                      <p style={{ marginTop: '0.4rem', fontSize: '0.82rem', color: 'rgba(255,255,255,0.6)' }}>
-                        Completá este formulario para registrar de inmediato tu número de trámite. Nos contactaremos en menos de 24 hs hábiles.
-                      </p>
-                    </div>
-
-                    {arrError && <div className="arrepentimiento-error">{arrError}</div>}
-
-                    <div className="arrepentimiento-grid">
-                      <div className="arrepentimiento-field">
-                        <label>Nombre y Apellido *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Tu nombre completo"
-                          value={arrNombre}
-                          onChange={e => setArrNombre(e.target.value)}
-                        />
-                      </div>
-                      <div className="arrepentimiento-field">
-                        <label>Email de compra *</label>
-                        <input
-                          type="email"
-                          required
-                          placeholder="email@ejemplo.com"
-                          value={arrEmail}
-                          onChange={e => setArrEmail(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="arrepentimiento-grid">
-                      <div className="arrepentimiento-field">
-                        <label>N° de Pedido / Orden *</label>
-                        <input
-                          type="text"
-                          required
-                          placeholder="Ej: #102 o ID del pedido"
-                          value={arrOrden}
-                          onChange={e => setArrOrden(e.target.value)}
-                        />
-                      </div>
-                      <div className="arrepentimiento-field">
-                        <label>Teléfono de contacto</label>
-                        <input
-                          type="tel"
-                          placeholder="Ej: 11 2345-6789"
-                          value={arrTelefono}
-                          onChange={e => setArrTelefono(e.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="arrepentimiento-field">
-                      <label>Motivo de la revocación</label>
-                      <select value={arrMotivo} onChange={e => setArrMotivo(e.target.value)}>
-                        <option value="Me arrepentí de la compra">Revocación de compra dentro del plazo legal (10 días)</option>
-                        <option value="Demora en la entrega">Demora excesiva en la entrega</option>
-                        <option value="Otro motivo">Otro motivo</option>
-                      </select>
-                    </div>
-
-                    <div className="arrepentimiento-field">
-                      <label>Comentarios adicionales (opcional)</label>
-                      <textarea
-                        rows="2"
-                        placeholder="Detalles sobre el estado del paquete o información útil..."
-                        value={arrMensaje}
-                        onChange={e => setArrMensaje(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="arrepentimiento-actions">
-                      <button type="button" className="btn btn--secondary" onClick={resetArrepentimiento}>
-                        Cancelar
-                      </button>
-                      <button type="submit" className="btn btn--primary" disabled={arrLoading}>
-                        {arrLoading ? 'Registrando solicitud...' : 'Enviar solicitud de arrepentimiento'}
-                      </button>
-                    </div>
-                  </form>
-                )
-              ) : (
-                /* ── Visualización de Términos / Privacidad / Guías ── */
+              {INFOS[infoOpen]?.sections ? (
                 <div className="legal-doc">
                   {INFOS[infoOpen]?.sections.map((sec, idx) => (
                     <div key={idx} className="legal-doc__section">
@@ -412,11 +222,17 @@ export default function Footer() {
                     </div>
                   ))}
                 </div>
+              ) : (
+                <div className="legal-doc" style={{ padding: '1.2rem 0' }}>
+                  <p style={{ fontSize: '0.95rem', lineHeight: '1.8', color: 'var(--color-text, #fff)', fontWeight: 600 }}>
+                    {INFOS[infoOpen]?.text}
+                  </p>
+                </div>
               )}
             </div>
 
             <div className="footer-modal__footer">
-              <button type="button" className="btn btn--secondary" onClick={resetArrepentimiento}>
+              <button type="button" className="btn btn--secondary" onClick={() => setInfoOpen(null)}>
                 Cerrar
               </button>
             </div>
