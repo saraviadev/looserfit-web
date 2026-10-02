@@ -94,7 +94,7 @@ const registerFromOrder = async (data) => {
         throw error;
     }
 
-    const orderEmail = order.datosEnvio?.email ? order.datosEnvio.email.trim().toLowerCase() : '';
+        const orderEmail = order.datosEnvio?.email ? order.datosEnvio.email.trim().toLowerCase() : '';
     if (!orderEmail) {
         const error = new Error('El pedido no tiene un email de contacto válido');
         error.statusCode = 400;
@@ -103,6 +103,14 @@ const registerFromOrder = async (data) => {
 
     if (regEmail !== orderEmail) {
         const error = new Error('El email de registro no coincide con el email del pedido');
+        error.statusCode = 403;
+        throw error;
+    }
+
+    // SEC-02 Hardening: Si se provee guestToken, validar correspondencia con la orden
+    const providedGuestToken = data.guestToken || data.trackingToken;
+    if (providedGuestToken && order.trackingToken && providedGuestToken !== order.trackingToken) {
+        const error = new Error('Token de invitado no válido para asociar este pedido.');
         error.statusCode = 403;
         throw error;
     }

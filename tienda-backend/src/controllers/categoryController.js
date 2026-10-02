@@ -32,6 +32,11 @@ const getCategoryById = async (req, res) => {
 
 const updateCategory = async (req, res) => {
     try {
+        const existing = await categoryService.getCategoryById(req.params.id);
+        if (!existing) return res.status(404).json({ mensaje: 'Categoría no encontrada' });
+        if (req.brandId && existing.brand && String(existing.brand._id || existing.brand) !== String(req.brandId)) {
+            return res.status(403).json({ mensaje: 'No tenés permiso para modificar una categoría de otra marca' });
+        }
         const category = await categoryService.updateCategory(req.params.id, req.body);
         if (!category) return res.status(404).json({ mensaje: 'Categoría no encontrada' });
         res.json(category);
@@ -42,6 +47,11 @@ const updateCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
     try {
+        const existing = await categoryService.getCategoryById(req.params.id);
+        if (!existing) return res.status(404).json({ mensaje: 'Categoría no encontrada' });
+        if (req.brandId && existing.brand && String(existing.brand._id || existing.brand) !== String(req.brandId)) {
+            return res.status(403).json({ mensaje: 'No tenés permiso para eliminar una categoría de otra marca' });
+        }
         const category = await categoryService.deleteCategory(req.params.id);
         if (!category) return res.status(404).json({ mensaje: 'Categoría no encontrada' });
         res.json({ mensaje: 'Categoría eliminada' });

@@ -66,5 +66,6 @@ const orderSchema = new mongoose.Schema({
 
 // Índice compuesto para listar pedidos por marca ordenados por fecha
 orderSchema.index({ brand: 1, deleted: 1, createdAt: -1 });
+orderSchema.index({ usuario: 1, deleted: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Order', orderSchema);

@@ -32,5 +32,6 @@ const productSchema = new mongoose.Schema({
 productSchema.index({ brand: 1, categoria: 1 });
 productSchema.index({ brand: 1, esNuevoDrop: 1 });
 productSchema.index({ brand: 1, publicado: 1 });
+productSchema.index({ brand: 1, createdAt: -1 });
 
 module.exports = mongoose.models.Product || mongoose.model('Product', productSchema);

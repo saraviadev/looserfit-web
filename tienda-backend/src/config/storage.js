@@ -3,9 +3,9 @@ const multer = require('multer');
 const ImageKit = require('imagekit');
 
 const imagekit = new ImageKit({
-    publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
-    privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
-    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT
+    publicKey: process.env.IMAGEKIT_PUBLIC_KEY || 'default_public_key',
+    privateKey: process.env.IMAGEKIT_PRIVATE_KEY || 'default_private_key',
+    urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || 'https://ik.imagekit.io/default'
 });
 
 // Multer general para productos (10MB máximo)
@@ -15,13 +15,13 @@ const upload = multer({
 });
 
 // Tipos MIME y extensiones estrictamente permitidas para comprobantes de pago
-const ALLOWED_RECEIPT_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
-const ALLOWED_RECEIPT_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
+const ALLOWED_RECEIPT_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const ALLOWED_RECEIPT_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp', '.pdf'];
 
 const receiptFileFilter = (_req, file, cb) => {
     // 1. Validación de MIME Type declarado
     if (!ALLOWED_RECEIPT_MIMES.includes(file.mimetype)) {
-        const error = new Error('Tipo de archivo no permitido. Solo se aceptan imágenes JPEG, PNG o WebP.');
+        const error = new Error('Tipo de archivo no permitido. Solo se aceptan imágenes JPEG, PNG, WebP o documentos PDF.');
         error.code = 'INVALID_FILE_TYPE';
         return cb(error, false);
     }
@@ -29,7 +29,7 @@ const receiptFileFilter = (_req, file, cb) => {
     // 2. Validación de extensión de archivo
     const ext = path.extname(file.originalname || '').toLowerCase();
     if (!ALLOWED_RECEIPT_EXTENSIONS.includes(ext)) {
-        const error = new Error('Extensión de archivo no permitida. Solo se aceptan .jpg, .jpeg, .png o .webp.');
+        const error = new Error('Extensión de archivo no permitida. Solo se aceptan .jpg, .jpeg, .png, .webp o .pdf.');
         error.code = 'INVALID_FILE_EXTENSION';
         return cb(error, false);
     }
@@ -75,6 +75,16 @@ function validateMagicBytes(buffer) {
         buffer.subarray(8, 12).toString('ascii') === 'WEBP'
     ) {
         return { mime: 'image/webp', ext: 'webp' };
+    }
+
+    // PDF: %PDF (25 50 44 46)
+    if (
+        buffer[0] === 0x25 &&
+        buffer[1] === 0x50 &&
+        buffer[2] === 0x44 &&
+        buffer[3] === 0x46
+    ) {
+        return { mime: 'application/pdf', ext: 'pdf' };
     }
 
     return null;

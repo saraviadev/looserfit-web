@@ -108,7 +108,9 @@ const updateSettings = async (brandId, comingSoon) => {
 const updateFeatured = async (brandId, productIds) => {
     let doc = await HomeContent.findOne({ brand: brandId });
     if (!doc) doc = await HomeContent.create({ brand: brandId });
-    doc.featuredProducts = productIds;
+    const Product = require('../models/product');
+    const validProducts = await Product.find({ _id: { $in: productIds }, brand: brandId }).distinct('_id');
+    doc.featuredProducts = validProducts;
     await doc.save();
     return await doc.populate('featuredProducts');
 };

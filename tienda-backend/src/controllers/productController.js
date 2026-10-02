@@ -57,6 +57,9 @@ const updateProduct = async (req, res) => {
         const productId = req.params.id;
         const existing = await productService.getProductById(productId);
         if (!existing) return res.status(404).json({ mensaje: 'Producto no encontrado' });
+        if (req.brandId && existing.brand && String(existing.brand._id || existing.brand) !== String(req.brandId)) {
+            return res.status(403).json({ mensaje: 'No tenés permiso para modificar un producto de otra marca' });
+        }
 
         const { galeriaPersistente, imagenesExistentes, ...otrosCampos } = req.body;
         
@@ -97,6 +100,11 @@ const updateProduct = async (req, res) => {
 
 const deleteProduct = async (req, res) => {
     try {
+        const existing = await productService.getProductById(req.params.id);
+        if (!existing) return res.status(404).json({ mensaje: 'Producto no encontrado' });
+        if (req.brandId && existing.brand && String(existing.brand._id || existing.brand) !== String(req.brandId)) {
+            return res.status(403).json({ mensaje: 'No tenés permiso para eliminar un producto de otra marca' });
+        }
         await productService.deleteProduct(req.params.id);
         res.json({ mensaje: 'Producto eliminado' });
     } catch (error) {
@@ -106,6 +114,11 @@ const deleteProduct = async (req, res) => {
 
 const toggleProductVisibility = async (req, res) => {
     try {
+        const existing = await productService.getProductById(req.params.id);
+        if (!existing) return res.status(404).json({ mensaje: 'Producto no encontrado' });
+        if (req.brandId && existing.brand && String(existing.brand._id || existing.brand) !== String(req.brandId)) {
+            return res.status(403).json({ mensaje: 'No tenés permiso para modificar un producto de otra marca' });
+        }
         const product = await productService.toggleProductVisibility(req.params.id);
         res.json({ mensaje: 'Visibilidad actualizada', producto: product });
     } catch (error) {
@@ -115,6 +128,11 @@ const toggleProductVisibility = async (req, res) => {
 
 const toggleProductDrop = async (req, res) => {
     try {
+        const existing = await productService.getProductById(req.params.id);
+        if (!existing) return res.status(404).json({ mensaje: 'Producto no encontrado' });
+        if (req.brandId && existing.brand && String(existing.brand._id || existing.brand) !== String(req.brandId)) {
+            return res.status(403).json({ mensaje: 'No tenés permiso para modificar un producto de otra marca' });
+        }
         const product = await productService.toggleProductDrop(req.params.id);
         res.json({ mensaje: 'Estado Drop actualizado', producto: product });
     } catch (error) {

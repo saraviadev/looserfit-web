@@ -2,6 +2,10 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /admin/*
+Disallow: /seguimiento
+Disallow: /seguimiento/*
+Disallow: /pedido-exito
+Disallow: /pedido-exito/*
 Disallow: /checkout
 Disallow: /mi-cuenta
 Disallow: /mis-pedidos

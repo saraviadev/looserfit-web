@@ -1,3 +1,99 @@
+
+const verifyOrderComprobanteAccess = async (req, res, next) => {
+    try {
+        const order = await Order.findById(req.params.id);
+        if (!order) {
+            return res.status(404).json({ mensaje: 'Pedido no encontrado' });
+        }
+
+        let tokenUser = null;
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+            const token = req.headers.authorization.split(' ')[1];
+            try {
+                tokenUser = jwt.verify(token, process.env.JWT_SECRET);
+            } catch (_e) {
+                // Token inválido
+            }
+        }
+
+        const guestToken = req.headers['x-guest-token'];
+
+        // 1. Administrador autorizado
+        if (tokenUser && tokenUser.isAdmin) {
+            req.order = order;
+            return next();
+        }
+
+        // 2. Orden de usuario registrado
+        if (order.usuario) {
+            if (!tokenUser) {
+                return res.status(401).json({ mensaje: 'Se requiere autenticación para ver el comprobante' });
+            }
+            const isOwner = String(tokenUser.id || tokenUser._id) === String(order.usuario);
+            if (!isOwner) {
+                return res.status(403).json({ mensaje: 'No tenés permiso para ver el comprobante de este pedido' });
+            }
+        } else {
+            // 3. Orden de invitado
+            if (!guestToken) {
+                return res.status(401).json({ mensaje: 'Se requiere token de invitado para ver el comprobante' });
+            }
+            if (guestToken !== order.trackingToken) {
+                return res.status(403).json({ mensaje: 'Token de invitado no válido para este pedido' });
+            }
+        }
+
+        req.order = order;
+        next();
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al verificar autorización de comprobante', error: error.message });
+    }
+};
+
+
+function maskName(name) {
+    if (!name || typeof name !== 'string') return '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) {
+        return parts[0].length > 3 ? parts[0].slice(0, 3) + '***' : parts[0] + '***';
+    }
+    const firstName = parts[0];
+    const lastName = parts[parts.length - 1];
+    return `${firstName} ${lastName[0]}.`;
+}
+
+function maskStreet(street) {
+    if (!street || typeof street !== 'string') return '';
+    return street.trim().replace(/\d+/g, '***');
+}
+
+function toTrackingDTO(order) {
+    return {
+        orderNumber: order.orderNumber,
+        estado: order.estado,
+        tipoEnvio: order.tipoEnvio,
+        trackingNumber: order.trackingNumber || null,
+        datosEnvio: {
+            nombreCompleto: maskName(order.datosEnvio?.nombreCompleto),
+            provincia: order.datosEnvio?.provincia || '',
+            localidad: order.datosEnvio?.localidad || '',
+            dni: order.datosEnvio?.dni ? (String(order.datosEnvio.dni).length > 4 ? '***' + String(order.datosEnvio.dni).slice(-4) : '***') : undefined,
+            direccionSucursal: order.tipoEnvio === 'sucursal' ? (order.datosEnvio?.direccionSucursal || '') : undefined,
+            calleNumero: order.tipoEnvio === 'domicilio' ? maskStreet(order.datosEnvio?.calleNumero) : undefined
+        },
+        productos: (order.productos || []).map(p => ({
+            nombre: p.nombre,
+            talle: p.talle,
+            cantidad: p.cantidad,
+            precio: (p.precioOferta && p.precioOferta > 0) ? p.precioOferta : p.precio,
+            imagen: p.imagen
+        })),
+        total: order.total,
+        createdAt: order.createdAt,
+        brand: order.brand
+    };
+}
+
 const orderService = require('../services/orderService');
 const Order = require('../models/Order');
 const jwt = require('jsonwebtoken');
@@ -102,13 +198,7 @@ const getOrderByToken = async (req, res) => {
         const order = await orderService.getOrderByToken(req.params.token);
         if (!order) return res.status(404).json({ mensaje: 'Link de seguimiento inválido o expirado' });
         
-        const orderObj = order.toObject ? order.toObject() : { ...order };
-        // Minimización de datos: enmascarar DNI en respuesta pública de tracking
-        if (orderObj.datosEnvio && orderObj.datosEnvio.dni) {
-            const rawDni = String(orderObj.datosEnvio.dni);
-            orderObj.datosEnvio.dni = rawDni.length > 4 ? '***' + rawDni.slice(-4) : '***';
-        }
-        res.json(orderObj);
+        res.json(toTrackingDTO(order));
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al consultar seguimiento', error: error.message });
     }
@@ -225,7 +315,7 @@ const uploadComprobante = async (req, res) => {
         // Inspección real de Magic Bytes
         const magicInfo = validateMagicBytes(req.file.buffer);
         if (!magicInfo) {
-            return res.status(400).json({ mensaje: 'Tipo de archivo no permitido. Solo se aceptan imágenes JPEG, PNG o WebP válidas.' });
+            return res.status(400).json({ mensaje: 'Tipo de archivo no permitido. Solo se aceptan imágenes JPEG, PNG, WebP o documentos PDF válidos.' });
         }
 
         const orderId = req.order ? req.order._id : req.params.id;
@@ -291,6 +381,19 @@ const bulkRestoreOrders = async (req, res) => {
     }
 };
 
+
+const getOrderComprobante = async (req, res) => {
+    try {
+        const order = req.order;
+        if (!order.comprobante) {
+            return res.status(404).json({ mensaje: 'El pedido no tiene ningún comprobante adjunto' });
+        }
+        res.json({ comprobante: order.comprobante });
+    } catch (error) {
+        res.status(500).json({ mensaje: 'Error al obtener comprobante', error: error.message });
+    }
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
@@ -305,5 +408,7 @@ module.exports = {
     deleteOrder,
     bulkDeleteOrders,
     restoreOrder,
-    bulkRestoreOrders
+    bulkRestoreOrders,
+    getOrderComprobante,
+    verifyOrderComprobanteAccess
 };

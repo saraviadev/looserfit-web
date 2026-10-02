@@ -54,6 +54,7 @@ export default function AdminPedidos() {
 
   useEffect(() => {
     setTimeout(() => fetchPedidos(), 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Filtrar por marca y búsqueda

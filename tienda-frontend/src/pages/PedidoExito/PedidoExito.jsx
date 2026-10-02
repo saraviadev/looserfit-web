@@ -151,7 +151,7 @@ export default function PedidoExito() {
                   <input 
                     type="file" 
                     id="file-upload"
-                    accept="image/*" 
+                    accept="image/jpeg,image/png,image/webp,application/pdf" 
                     onChange={(e) => setFile(e.target.files[0])} 
                     className="file-input"
                     style={{ display: 'none' }}

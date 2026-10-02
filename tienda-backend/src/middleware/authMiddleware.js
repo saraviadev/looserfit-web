@@ -29,4 +29,25 @@ const adminOnly = (req, res, next) => {
     }
 };
 
-module.exports = { protect, adminOnly };
+
+const optionalAuth = (req, res, next) => {
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+        req.user = null;
+        return next();
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (_e) {
+        return res.status(401).json({ error: 'Token no válido o expirado' });
+    }
+};
+
+module.exports = { protect, adminOnly, optionalAuth };

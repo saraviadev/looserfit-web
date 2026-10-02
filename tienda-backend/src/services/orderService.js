@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Counter = require('../models/Counter');
 const Product = require('../models/product');
+const { SHIPPING_RATES, VALID_SHIPPING_TYPES } = require('../constants/shipping');
 const crypto = require('crypto');
 const { enviarEmailPedido, enviarEmailSeguimiento } = require('../config/email');
 const { deleteFromCloudinary } = require('../utils/cloudinaryUtils');
@@ -29,19 +30,54 @@ async function getNextOrderNumber() {
 }
 
 const createOrder = async (orderData) => {
-    const { productos = [], tipoEnvio, datosEnvio, usuario, brand } = orderData;
-    // Validación y sanitización de DNI para despacho postal
-    if (datosEnvio) {
-        if (datosEnvio.dni) {
-            const cleanDni = String(datosEnvio.dni).replace(/\D/g, '');
-            if (cleanDni.length >= 7 && cleanDni.length <= 8) {
-                datosEnvio.dni = cleanDni;
-            } else {
-                throw new Error('DNI inválido: debe contener 7 u 8 dígitos numéricos.');
-            }
+    const productos = orderData.productos || orderData.items || [];
+    const { tipoEnvio, datosEnvio, usuario, brand } = orderData;
+
+    if (!Array.isArray(productos) || productos.length === 0) {
+        throw new Error('El pedido debe contener al menos un producto.');
+    }
+
+    if (!tipoEnvio || !VALID_SHIPPING_TYPES.includes(tipoEnvio)) {
+        throw new Error("Modalidad de envío inválida: debe ser 'sucursal' o 'domicilio'.");
+    }
+
+        if (!datosEnvio) {
+        throw new Error('Los datos de envío son obligatorios.');
+    }
+
+    if (!datosEnvio.nombreCompleto || datosEnvio.nombreCompleto.trim().length < 3) {
+        throw new Error('El nombre y apellido son obligatorios (mínimo 3 caracteres).');
+    }
+
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const cleanEmail = (datosEnvio.email || '').trim().toLowerCase();
+    if (cleanEmail && !EMAIL_REGEX.test(cleanEmail)) {
+        throw new Error('El email de contacto no es válido.');
+    }
+    if (cleanEmail) {
+        datosEnvio.email = cleanEmail;
+    }
+
+    // Validación y sanitización de DNI para despacho postal Correo Argentino (si fue suministrado)
+    if (datosEnvio.dni) {
+        const cleanDni = String(datosEnvio.dni).replace(/\D/g, '');
+        if (cleanDni.length >= 7 && cleanDni.length <= 8) {
+            datosEnvio.dni = cleanDni;
+        } else {
+            throw new Error('DNI inválido: debe contener 7 u 8 dígitos numéricos.');
         }
     }
-    
+
+    if (tipoEnvio === 'domicilio') {
+        if (!datosEnvio.calleNumero || datosEnvio.calleNumero.trim().length < 2) {
+            throw new Error('Calle y número son obligatorios para envío a domicilio.');
+        }
+    } else if (tipoEnvio === 'sucursal') {
+        if (!datosEnvio.direccionSucursal || datosEnvio.direccionSucursal.trim().length < 3) {
+            throw new Error('La dirección o identificación de la sucursal es obligatoria para retiro en sucursal.');
+        }
+    }
+
     const productosPedido = [];
     let totalCalculado = 0;
 
@@ -70,16 +106,13 @@ const createOrder = async (orderData) => {
         totalCalculado += precioUnitario * cantidad;
     }
 
-    // El stock ya no se descuenta aquí, sino en el webhook tras el pago.
-    // Solo mantenemos la verificación inicial de stock arriba.
-
     const orderNumber = await getNextOrderNumber();
-    const shippingCost = tipoEnvio === 'domicilio' ? 11000 : 7500;
+    const shippingCost = SHIPPING_RATES[tipoEnvio];
     const totalFinal = totalCalculado + shippingCost;
     const trackingToken = crypto.randomBytes(16).toString('hex');
 
     const nuevoPedido = new Order({
-        brand,              // Multi-marca: marca de la tienda donde se hizo la compra
+        brand,
         productos: productosPedido,
         total: totalFinal,
         tipoEnvio,
@@ -104,6 +137,9 @@ const getAllOrders = async (query = {}) => {
     const filter = query.deleted === 'true'
         ? { deleted: true }
         : { deleted: { $ne: true } };
+    if (query.brand) {
+        filter.brand = query.brand;
+    }
     return await Order.find(filter).populate('brand', 'slug name').sort({ createdAt: -1 });
 };
 
@@ -215,6 +251,25 @@ const bulkRestoreOrders = async (ids) => {
     );
 };
 
+
+const reconcileStalePendingOrders = async (days = 7) => {
+    const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    return await Order.updateMany(
+        {
+            estado: 'Pendiente',
+            comprobante: null,
+            mpPaymentId: null,
+            createdAt: { $lt: cutoff }
+        },
+        {
+            $set: {
+                estado: 'Cancelado',
+                stockAlert: 'Cancelado automáticamente por inactividad prolongada (> 7 días)'
+            }
+        }
+    );
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
@@ -227,5 +282,6 @@ module.exports = {
     deleteOrder,
     bulkDeleteOrders,
     restoreOrder,
-    bulkRestoreOrders
+    bulkRestoreOrders,
+    reconcileStalePendingOrders
 };
