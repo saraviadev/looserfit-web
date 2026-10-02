@@ -26,7 +26,7 @@ const DEFAULT_BRAND = {
     borderRadius: '0px',
   },
   seo: {
-    title: 'Looser Fit — High Quality Aesthetic Wear',
+    title: 'Looser Fit',
     description: 'Tienda oficial de Looser Fit.',
     ogImage: '',
   },
@@ -74,13 +74,13 @@ export function BrandProvider({ brandSlug, children }) {
   // Actualizar el title y meta description del documento según la marca
   useEffect(() => {
     if (!brand?.seo) return
-    if (brand.seo.title) document.title = brand.seo.title
+    document.title = brand?.slug === 'sport' ? 'Looser Sport' : 'Looser Fit'
 
     const metaDesc = document.querySelector('meta[name="description"]')
     if (metaDesc && brand.seo.description) {
       metaDesc.setAttribute('content', brand.seo.description)
     }
-  }, [brand?.seo])
+  }, [brand?.seo, brand?.slug])
 
   return (
     <BrandContext.Provider value={{ brand, loading }}>

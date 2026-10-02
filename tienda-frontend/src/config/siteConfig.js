@@ -7,7 +7,7 @@
 const BRAND_CONFIGS = {
   fit: {
     name: 'Looser Fit',
-    tagline: 'High Quality Aesthetic Wear',
+    tagline: 'Looser Fit',
     socials: {
       instagram: '@looser.fit',
       twitter: '@looserfit',

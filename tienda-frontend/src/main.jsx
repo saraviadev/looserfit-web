@@ -8,7 +8,7 @@ import { AuthProvider } from './context/AuthContext.jsx'
 import { ToastProvider } from './context/ToastContext.jsx'
 import { getBrandSlug } from './services/api'
 
-document.title = 'looserfit.com'
+document.title = 'Looser Fit'
 
 // El slug se detecta desde la URL al cargar la página
 // /sport/* → 'sport'  |  /* → 'fit'

@@ -26,7 +26,7 @@ const INITIAL_BRANDS = [
       borderRadius: '0px',
     },
     seo: {
-      title: 'Looser Fit — High Quality Aesthetic Wear',
+      title: 'Looser Fit',
       description: 'Tienda oficial de Looser Fit. Ropa urbana de calidad premium.',
       ogImage: '',
     },
