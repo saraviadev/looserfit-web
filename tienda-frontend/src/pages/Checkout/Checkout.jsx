@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { useAuth } from '../../context/AuthContext'
 import { crearPedidoConBrand, crearPreferenciaPago } from '../../services/api'
+import { trackInitiateCheckout } from '../../utils/pixel'
 import './Checkout.css'
 
 const PROVINCIAS = [
@@ -22,6 +23,12 @@ export default function Checkout() {
   const [tipoEnvio, setTipoEnvio] = useState('sucursal')
   const shippingCost = tipoEnvio === 'domicilio' ? 11000 : 7500
   const totalWithShipping = subtotal + shippingCost
+
+  useEffect(() => {
+    if (items && items.length > 0) {
+      trackInitiateCheckout(totalWithShipping, items.length)
+    }
+  }, [items, totalWithShipping])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [form, setForm] = useState({

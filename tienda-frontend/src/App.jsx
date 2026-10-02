@@ -31,7 +31,8 @@ import MisPedidos from './pages/MisPedidos/MisPedidos'
 import TrackingPedido from './pages/Tracking/TrackingPedido'
 import NotFound from './pages/NotFound/NotFound'
 import PendingReceiptAlert from './components/PendingReceiptAlert/PendingReceiptAlert'
-import { getHomeContent } from './services/api'
+import { getHomeContent, BASE_URL } from './services/api'
+import { initMetaPixel, trackPageView } from './utils/pixel'
 import { useAuth } from './context/AuthContext'
 
 // ─── Pantalla de Coming Soon ───────────────────────────────────────────────
@@ -150,6 +151,9 @@ function BrandRoutes({ pathPrefix }) {
   const [homeLoading, setHomeLoading] = useState(true)
   const [authOpen, setAuthOpen] = useState(false)
   const location = useLocation()
+  useEffect(() => {
+    trackPageView()
+  }, [location.pathname])
 
   // Soporte de bypass DEV/Admin
   const params = new URLSearchParams(location.search)
@@ -305,6 +309,11 @@ function ScrollToTop() {
 }
 
 function App() {
+  useEffect(() => {
+    initMetaPixel()
+    fetch(`${BASE_URL}/health`).catch(() => {})
+  }, [])
+
   return (
     <>
       <ScrollToTop />

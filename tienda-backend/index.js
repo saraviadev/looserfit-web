@@ -74,6 +74,15 @@ if (process.env.NODE_ENV !== 'test') {
 }
 // -------------------------------------------------------
 
+// --- Endpoint Health / Ping para servicios keepalive (Render anti-hibernación) ---
+app.get(['/health', '/api/health', '/ping'], (_req, res) => {
+    res.status(200).json({
+        status: 'ok',
+        uptime: Math.floor(process.uptime()),
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.get('/', (req, res) => {
     res.send('Servidor de Losserfit funcionando 🚀');
 });

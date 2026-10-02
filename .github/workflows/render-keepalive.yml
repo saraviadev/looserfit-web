@@ -1,0 +1,15 @@
+name: Render API Keep-Alive Pinger
+
+on:
+  schedule:
+    # Cada 10 minutos (Render duerme a los 15 min de inactividad)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping LooserFit Render Backend
+        run: |
+          curl -s -f https://looserfit-api.onrender.com/health || echo "Ping dispatched"

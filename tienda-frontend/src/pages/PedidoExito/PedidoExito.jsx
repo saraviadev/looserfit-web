@@ -3,6 +3,7 @@ import { useLocation, Link } from 'react-router-dom'
 import { getPedidoById, getOrderByToken, subirComprobante, registerFromOrder } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
+import { trackPurchase } from '../../utils/pixel'
 import './PedidoExito.css'
 
 export default function PedidoExito() {
@@ -38,7 +39,8 @@ export default function PedidoExito() {
       getOrderByToken(token)
         .then(data => {
           setPedido(data)
-          setComprobanteUrl(data.comprobante || '')
+          setComprobanteUrl(data.comprobante || '');
+        trackPurchase(data)
         })
         .catch(() => setPedidoNotFound(true))
       return

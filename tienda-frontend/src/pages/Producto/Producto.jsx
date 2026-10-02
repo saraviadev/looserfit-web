@@ -4,6 +4,7 @@ import { getProductoById } from '../../services/api'
 import { useCart } from '../../context/CartContext'
 import { useToast } from '../../context/ToastContext'
 import { optimizeImage } from '../../utils/imageOptimizer'
+import { trackViewContent, trackAddToCart } from '../../utils/pixel'
 import './Producto.css'
 
 export default function Producto() {
@@ -22,7 +23,7 @@ export default function Producto() {
   useEffect(() => {
     window.scrollTo(0, 0)
     getProductoById(id)
-      .then(data => { setProducto(data); setLoading(false) })
+      .then(data => { setProducto(data); setLoading(false); trackViewContent(data) })
       .catch(err  => { setError(err.message); setLoading(false) })
   }, [id])
 
@@ -38,6 +39,7 @@ export default function Producto() {
   const agregarAlCarrito = () => {
     if (!talleElegido) return toast.warning('Elegí un talle primero')
     addItem(producto, talleElegido, 1)
+    trackAddToCart({ ...producto, talle: talleElegido })
     toast.success(`✓ ${producto.nombre} (${talleElegido}) agregado al carrito`)
   }
 

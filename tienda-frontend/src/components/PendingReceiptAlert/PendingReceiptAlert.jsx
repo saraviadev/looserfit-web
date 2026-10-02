@@ -8,17 +8,11 @@ export default function PendingReceiptAlert() {
   const { user } = useAuth()
   const [pendingCount, setPendingCount] = useState(0)
   const [targetUrl, setTargetUrl] = useState('')
-  const [dismissed, setDismissed] = useState(false)
+  const [dismissed, setDismissed] = useState(() => typeof window !== 'undefined' && sessionStorage.getItem('dismissed_receipt_alert') === 'true')
   const location = useLocation()
   const isAdmin = user?.isAdmin === true
 
   useEffect(() => {
-    // Si el usuario ya lo descartó en esta sesión, no mostrar
-    if (sessionStorage.getItem('dismissed_receipt_alert') === 'true') {
-      setDismissed(true)
-      return
-    }
-
     const checkPending = async () => {
       try {
         if (isAdmin) {
