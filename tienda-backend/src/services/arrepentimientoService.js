@@ -75,6 +75,18 @@ const crearSolicitud = async (data) => {
             error.statusCode = 400;
             throw error;
         }
+
+        // Validación estricta del plazo legal de 10 días corridos (Ley 24.240 Art. 34, Disp. 954/2025 y Disp. 3/2026)
+        const orderDate = matchedOrder.createdAt ? new Date(matchedOrder.createdAt) : null;
+        if (orderDate) {
+            const tenDaysMs = 10 * 24 * 60 * 60 * 1000;
+            const elapsedMs = Date.now() - orderDate.getTime();
+            if (elapsedMs > tenDaysMs) {
+                const error = new Error('El plazo legal de 10 días corridos para ejercer el derecho de arrepentimiento ha expirado.');
+                error.statusCode = 400;
+                throw error;
+            }
+        }
     }
 
     // Resolver marca si aplica

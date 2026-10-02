@@ -25,7 +25,9 @@ const allowedOrigins = [
     'https://looserfit-web-eight.vercel.app',
     'https://looserfit.com',
     'https://www.looserfit.com',
-    process.env.FRONTEND_URL
+    process.env.FRONTEND_URL,
+    process.env.FRONTEND_URL_FIT,
+    process.env.FRONTEND_URL_SPORT
 ].filter(Boolean);
 
 app.use(cors({
@@ -76,7 +78,7 @@ app.get('/', (req, res) => {
     res.send('Servidor de Losserfit funcionando 🚀');
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 if (process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
         console.log(`🚀 Servidor en http://localhost:${PORT}`);

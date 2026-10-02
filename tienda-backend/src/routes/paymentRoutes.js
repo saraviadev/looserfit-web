@@ -252,6 +252,7 @@ router.post('/webhook', async (req, res) => {
         if (paymentData.currency_id !== 'ARS') {
             console.error(`[Webhook MP] ❌ Moneda inválida: ${paymentData.currency_id}. Se esperaba ARS.`);
             await Order.findByIdAndUpdate(orderId, {
+                paymentStatus: 'currency_mismatch',
                 stockAlert: `Moneda de pago inválida (${paymentData.currency_id}). Se esperaba ARS.`
             });
             return res.sendStatus(200);
@@ -262,7 +263,8 @@ router.post('/webhook', async (req, res) => {
         if (paymentCents !== orderCents) {
             console.error(`[Webhook MP] ❌ Monto inválido. Pagado: ${paymentData.transaction_amount} vs Orden: ${order.total}`);
             await Order.findByIdAndUpdate(orderId, {
-                stockAlert: `Discrepancia en importe abonado: pagado $${paymentData.transaction_amount} vs total orden $${order.total}`
+                paymentStatus: 'amount_mismatch',
+                stockAlert: `Discrepancia en importe abonado: pagado ${paymentData.transaction_amount} vs total orden ${order.total}`
             });
             return res.sendStatus(200);
         }
@@ -278,8 +280,13 @@ router.post('/webhook', async (req, res) => {
         if (order.mpPaymentId && order.mpPaymentId !== String(paymentId) && ['Pagado', 'Empaquetado', 'Enviado', 'Entregado'].includes(order.estado)) {
             console.warn(`[Webhook MP] ⚠️ ANOMALÍA: Se recibió pago adicional (${paymentId}) para orden ${orderId} que ya tenía el pago ${order.mpPaymentId}`);
             await Order.findByIdAndUpdate(orderId, {
-                stockAlert: `Anomalía de cobro: se recibió un segundo pago (${paymentId}) para este pedido.`
+                stockAlert: `Anomalía de cobro: se recibió un segundo pago (${paymentId}) para este pedido que ya estaba abonado. No se descontó stock adicional. Requiere verificación de reintegro en Mercado Pago.`
             });
+            const { enviarEmailNotificacionAdmin, enviarConReintentos } = require('../config/email');
+            if (enviarEmailNotificacionAdmin && enviarConReintentos) {
+                const alertOrder = await Order.findById(orderId);
+                enviarConReintentos(() => enviarEmailNotificacionAdmin(alertOrder), 3, 'Alerta pago duplicado').catch(console.error);
+            }
             return res.sendStatus(200);
         }
 
@@ -347,11 +354,21 @@ router.post('/webhook', async (req, res) => {
                     if (stockFailure) {
                         console.error(`❌ [Webhook MP] AbortTransaction por stock insuficiente en orden ${orderId}`);
                         await Order.findByIdAndUpdate(orderId, {
-                            stockAlert: 'Stock insuficiente al momento de acreditar el pago',
+                            estado: 'ConflictoStock',
+                            stockAlert: 'CRÍTICO: Stock insuficiente al momento de acreditar el pago (Mercado Pago ID: ' + paymentId + '). Requiere reposición de inventario o reembolso manual vía panel de Mercado Pago.',
+                            paymentProvider: 'mercadopago',
+                            paymentStatus: 'approved_stock_conflict',
                             mpPaymentId: String(paymentId),
                             mpStatus: paymentData.status,
-                            mpStatusDetail: paymentData.status_detail || null
+                            mpStatusDetail: paymentData.status_detail || null,
+                            paymentAmount: paymentData.transaction_amount,
+                            paymentCurrency: paymentData.currency_id
                         });
+                        const { enviarEmailNotificacionAdmin, enviarConReintentos } = require('../config/email');
+                        if (enviarEmailNotificacionAdmin && enviarConReintentos) {
+                            const conflictOrder = await Order.findById(orderId);
+                            enviarConReintentos(() => enviarEmailNotificacionAdmin(conflictOrder), 3, 'Alerta conflicto stock').catch(console.error);
+                        }
                         return res.sendStatus(200);
                     } else {
                         throw txErr;
@@ -371,11 +388,21 @@ router.post('/webhook', async (req, res) => {
                 if (stockFailure) {
                     console.error(`❌ [Webhook MP] Stock insuficiente para pedido ${orderId}`);
                     await Order.findByIdAndUpdate(orderId, {
-                        stockAlert: 'Stock insuficiente al momento de acreditar el pago',
+                        estado: 'ConflictoStock',
+                        stockAlert: 'CRÍTICO: Stock insuficiente al momento de acreditar el pago (Mercado Pago ID: ' + paymentId + '). Requiere reposición de inventario o reembolso manual vía panel de Mercado Pago.',
+                        paymentProvider: 'mercadopago',
+                        paymentStatus: 'approved_stock_conflict',
                         mpPaymentId: String(paymentId),
                         mpStatus: paymentData.status,
-                        mpStatusDetail: paymentData.status_detail || null
+                        mpStatusDetail: paymentData.status_detail || null,
+                        paymentAmount: paymentData.transaction_amount,
+                        paymentCurrency: paymentData.currency_id
                     });
+                    const { enviarEmailNotificacionAdmin, enviarConReintentos } = require('../config/email');
+                    if (enviarEmailNotificacionAdmin && enviarConReintentos) {
+                        const conflictOrder = await Order.findById(orderId);
+                        enviarConReintentos(() => enviarEmailNotificacionAdmin(conflictOrder), 3, 'Alerta conflicto stock').catch(console.error);
+                    }
                     return res.sendStatus(200);
                 }
 

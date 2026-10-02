@@ -40,21 +40,23 @@
 
 Las siguientes variables deben configurarse en los entornos de producción (Render y Vercel). No utilizar valores de desarrollo ni credenciales de prueba.
 
-### Backend (Servicio en Render)
+### Backend (Servicio en Render — 15 Variables Canónicas)
 * [ ] `NODE_ENV=production`
 * [ ] `PORT=10000`
 * [ ] `MONGO_URI` (URI de conexión a clúster de MongoDB Atlas con TLS/SSL habilitado).
 * [ ] `JWT_SECRET` (Cadena aleatoria de alta entropía, mínimo 64 caracteres).
 * [ ] `MP_ACCESS_TOKEN` (Access Token de producción obtenido de Mercado Pago Developers).
+* [ ] `MP_PUBLIC_KEY` (Public Key de Mercado Pago).
 * [ ] `MP_WEBHOOK_SECRET` (Secret del webhook configurado en el panel de desarrollador de Mercado Pago).
 * [ ] `IMAGEKIT_PUBLIC_KEY` (Clave pública de ImageKit.io para carga de comprobantes).
 * [ ] `IMAGEKIT_PRIVATE_KEY` (Clave privada de ImageKit.io).
 * [ ] `IMAGEKIT_URL_ENDPOINT` (URL endpoint asignado por ImageKit, e.g. `https://ik.imagekit.io/looserfit`).
 * [ ] `RESEND_API_KEY` (Clave de API de producción de Resend, formato `re_...`).
-* [ ] `RESEND_FROM_EMAIL` (Dirección remitente con dominio verificado, e.g. `LooserFit <pedidos@looserfit.com>`).
-* [ ] `ADMIN_EMAIL` (Correo electrónico del administrador para notificaciones de pagos y solicitudes de arrepentimiento).
-* [ ] `FRONTEND_URL_FIT` (URL pública de producción de la tienda Fit, e.g. `https://looserfit.com`).
-* [ ] `FRONTEND_URL_SPORT` (URL pública de producción de la tienda Sport, e.g. `https://sport.looserfit.com`).
+* [ ] `RESEND_FROM_EMAIL` (Remitente con dominio verificado; alias retrocompatible `EMAIL_FROM`).
+* [ ] `ADMIN_EMAIL` (Email del admin para alertas y notificaciones; alias retrocompatible `EMAIL_USER`).
+* [ ] `FRONTEND_URL_FIT` (URL pública de la tienda Fit; alias retrocompatible `FRONTEND_URL`).
+* [ ] `FRONTEND_URL_SPORT` (URL pública de la tienda Sport).
+* [ ] `BACKEND_URL` (URL pública de la API en Render, e.g. `https://api.looserfit.com`).
 
 ### Frontend (Proyecto en Vercel)
 * [ ] `VITE_API_BASE_URL` (URL de la API backend en Render, e.g. `https://api.looserfit.com`).

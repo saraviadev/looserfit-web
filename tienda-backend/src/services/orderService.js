@@ -162,7 +162,8 @@ const VALID_TRANSITIONS = {
     Empaquetado: ['Enviado', 'Cancelado'],
     Enviado: ['Entregado', 'Cancelado'],
     Entregado: [],
-    Cancelado: []
+    Cancelado: [],
+    ConflictoStock: ['Pagado', 'Cancelado']
 };
 
 const updateOrderStatus = async (id, estado) => {

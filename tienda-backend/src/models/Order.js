@@ -38,7 +38,7 @@ const orderSchema = new mongoose.Schema({
         pisoDepto: { type: String },         // Para domicilio (opcional)
         codigoPostal: { type: String }       // Para domicilio
     },
-    estado: { type: String, default: 'Pendiente' }, // Pendiente, Pagado, Empaquetado, Enviado, Entregado, Cancelado
+    estado: { type: String, default: 'Pendiente' }, // Pendiente, Pagado, Empaquetado, Enviado, Entregado, Cancelado, ConflictoStock
     orderNumber: { type: String, required: true, unique: true, index: true }, // Nro de orden visible para control interno y clientes
     shippingCost: { type: Number, required: true, default: 0 },
     comprobante: { type: String }, // URL de la imagen del comprobante

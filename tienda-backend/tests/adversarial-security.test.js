@@ -516,4 +516,125 @@ describe('SUITE ADVERSARIAL: Pruebas de Estrés, Seguridad y Penetración', () =
             global.fetch = originalFetch;
         });
     });
+
+    describe('6. Casos Límite Financieros, Stock Exhausto y Plazo Legal (F3 / F5 Hardening)', () => {
+        test('ADV-19: Orden de más de 10 días corridos de antigüedad rechaza solicitud de arrepentimiento con 400', async () => {
+            const oldDate = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000); // 15 días atrás
+            await Order.create({
+                brand: brandFit._id,
+                productos: [{
+                    productoId: productFit._id,
+                    nombre: productFit.nombre,
+                    cantidad: 1,
+                    precio: 35000
+                }],
+                total: 42500,
+                tipoEnvio: 'sucursal',
+                datosEnvio: {
+                    nombreCompleto: 'Consumidor Vencido',
+                    email: 'vencido@test.com',
+                    telefono: '1122334455',
+                    provincia: 'Buenos Aires',
+                    localidad: 'La Plata',
+                    direccionSucursal: 'Sucursal 1'
+                },
+                estado: 'Entregado',
+                orderNumber: '#OLD-101',
+                trackingToken: 'token_old_101',
+                shippingCost: 7500,
+                createdAt: oldDate
+            });
+
+            const res = await request(app)
+                .post('/api/arrepentimientos')
+                .send({
+                    customerName: 'Consumidor Vencido',
+                    customerEmail: 'vencido@test.com',
+                    orderNumber: '#OLD-101'
+                });
+
+            expect(res.status).toBe(400);
+            expect(res.body.mensaje).toMatch(/plazo legal de 10 días corridos.*ha expirado/i);
+        });
+
+        test('ADV-20: Pago aprobado por MP con stock agotado transiciona orden a ConflictoStock y flag de alerta', async () => {
+            const zeroStockProduct = await Product.create({
+                nombre: 'Remera Agotada',
+                precio: 20000,
+                stock: 0, // Sin stock disponible
+                publicado: true,
+                categoria: catFit._id,
+                brand: brandFit._id
+            });
+
+            const conflictOrder = await Order.create({
+                brand: brandFit._id,
+                productos: [{
+                    productoId: zeroStockProduct._id,
+                    nombre: zeroStockProduct.nombre,
+                    cantidad: 1,
+                    precio: 20000
+                }],
+                total: 27500,
+                tipoEnvio: 'sucursal',
+                datosEnvio: {
+                    nombreCompleto: 'Cliente Sin Stock',
+                    email: 'sin_stock@test.com',
+                    telefono: '1122334455',
+                    provincia: 'BA',
+                    localidad: 'Quilmes',
+                    direccionSucursal: 'Sucursal 1'
+                },
+                estado: 'Pendiente',
+                orderNumber: '#STOCK-CONFLICT-01',
+                trackingToken: 'token_conflict_01',
+                shippingCost: 7500
+            });
+
+            const paymentId = 999333;
+            const secret = 'webhook_secret_test_key_12345';
+            process.env.MP_WEBHOOK_SECRET = secret;
+            process.env.MP_ACCESS_TOKEN = 'test_token';
+
+            const originalFetch = global.fetch;
+            global.fetch = jest.fn((url) => {
+                if (url.includes(String(paymentId))) {
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        text: () => Promise.resolve(''),
+                        json: () => Promise.resolve({
+                            id: 999333,
+                            status: 'approved',
+                            status_detail: 'accredited',
+                            currency_id: 'ARS',
+                            transaction_amount: 27500,
+                            external_reference: String(conflictOrder._id)
+                        })
+                    });
+                }
+                return originalFetch(url);
+            });
+
+            const ts = String(Math.floor(Date.now() / 1000));
+            const manifest = `id:${paymentId};request-id:req-conflict;ts:${ts};`;
+            const v1 = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+
+            const res = await request(app)
+                .post(`/api/payments/webhook?topic=payment&id=${paymentId}`)
+                .set('x-signature', `ts=${ts},v1=${v1}`)
+                .set('x-request-id', 'req-conflict')
+                .send({});
+
+            expect(res.status).toBe(200);
+
+            const updatedOrder = await Order.findById(conflictOrder._id);
+            expect(updatedOrder.estado).toBe('ConflictoStock');
+            expect(updatedOrder.paymentStatus).toBe('approved_stock_conflict');
+            expect(updatedOrder.stockAlert).toMatch(/CRÍTICO: Stock insuficiente al momento de acreditar el pago/i);
+
+            global.fetch = originalFetch;
+        });
+    });
+
 });

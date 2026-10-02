@@ -39,12 +39,13 @@ if (process.env.NODE_ENV !== 'test') {
 // ── Motor unificado de envío: Resend API HTTP con fallback a Nodemailer SMTP ──
 async function sendEmail({ to, bcc, subject, html }) {
     const defaultFrom = `"${process.env.SITE_NAME || 'Looser Fit'}" <${process.env.EMAIL_USER || 'looserfit2004@gmail.com'}>`;
-    let from = process.env.EMAIL_FROM || defaultFrom;
+    let from = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || defaultFrom;
 
     // 1. Si existe API KEY de Resend, enviamos vía HTTP (puerto 443, sin bloqueos de puerto en Render)
     if (process.env.RESEND_API_KEY) {
         // En Resend, si no hay un dominio personalizado verificado en EMAIL_FROM, usar el remitente oficial de prueba
-        if (!process.env.EMAIL_FROM || process.env.EMAIL_FROM.includes('gmail.com')) {
+        const configuredFrom = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM;
+        if (!configuredFrom || configuredFrom.includes('gmail.com')) {
             from = `"${process.env.SITE_NAME || 'Looser Fit'}" <onboarding@resend.dev>`;
         }
         let recipientList;
@@ -145,7 +146,7 @@ function wrapHTML(titulo, contenido) {
 // ── Email al cliente cuando confirma el pedido ──
 async function enviarEmailPedido(datosEnvio, pedido) {
     try {
-        const trackingBaseUrl = (process.env.SITE_FRONTEND_URL || process.env.FRONTEND_URL || 'https://www.looserfit.com').replace(/\/$/, '');
+        const trackingBaseUrl = (process.env.FRONTEND_URL_FIT || process.env.SITE_FRONTEND_URL || process.env.FRONTEND_URL || 'https://www.looserfit.com').replace(/\/$/, '');
         const trackingLink = `${trackingBaseUrl}/seguimiento/${pedido.trackingToken}`;
 
         const direccionDetalle = pedido.tipoEnvio === 'sucursal'
@@ -354,7 +355,7 @@ async function enviarEmailNotificacionAdmin(pedido) {
         );
 
         await sendEmail({
-            to: process.env.EMAIL_USER || 'looserfit2004@gmail.com',
+            to: process.env.ADMIN_EMAIL || process.env.EMAIL_USER || 'looserfit2004@gmail.com',
             subject: `🛒 Nuevo pedido ${pedido.orderNumber} — ${pedido.datosEnvio?.nombreCompleto}`,
             html
         });

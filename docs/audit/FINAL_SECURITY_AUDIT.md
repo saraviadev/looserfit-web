@@ -14,7 +14,7 @@ Se ha completado una inspección adversarial integral y un endurecimiento defens
 | Superficie | Estado | Evaluación |
 | :--- | :---: | :--- |
 | **1. Endpoints** | **PASS** | Todas las rutas aplican autorización por rol/token, minimización de datos y rate-limiting. |
-| **2. Autenticación** | **PASS** | JWT con expiración estricta, tokens de invitado cifrados/inmutables y guardas anti-takeover. |
+| **2. Autenticación** | **PASS** | JWT con expiración estricta, tokens de invitado pseudoaleatorios criptográficamente seguros (256 bits CSPRNG) y guardas anti-takeover. |
 | **3. Autorización** | **PASS** | Aislamiento estricto de marca (Fit vs Sport), separación guest/user/admin y prevención de IDOR. |
 | **4. Input Validation** | **PASS** | Servidor autoritativo en precios/envíos, validación de schemas, magic bytes para uploads. |
 | **5. Data Exposure** | **PASS** | DTO estricto de tracking con PII enmascarada; cero exposición de tokens o credenciales. |
@@ -54,10 +54,10 @@ Se ha completado una inspección adversarial integral y un endurecimiento defens
 * **`POST /api/payments/webhook`**:
   * *Evaluación:* **PASS**.
   * *Mecanismos:* Validación criptográfica HMAC-SHA256 de cabecera `x-signature` contra `MP_WEBHOOK_SECRET`. Consulta atómica a API de Mercado Pago para verificar status, amount y currency.
-* **`POST /api/arrepentimiento/solicitar`**:
+* **`POST /api/arrepentimientos`**:
   * *Evaluación:* **PASS**.
   * *Mecanismos:* Validación de existencia de orden y coincidencia de email. Comprueba plazo legal de 10 días corridos desde creación/entrega. Previene solicitudes duplicadas sobre la misma orden.
-* **`GET /api/arrepentimiento/admin/solicitudes` y `PATCH .../estado`**:
+* **`GET /api/arrepentimientos/all` y `PATCH /api/arrepentimientos/:id/status`**:
   * *Evaluación:* **PASS**.
   * *Mecanismos:* Exclusivo para administradores (`verifyAdmin`), con filtrado estricto por marca (`brandId`).
 
@@ -126,7 +126,7 @@ Se ha completado una inspección adversarial integral y un endurecimiento defens
     * Nombre: Enmascarado (e.g., `"Mariano M."`).
     * Calle y altura: Enmascarados (e.g., `"Defensa ***"`).
     * DNI: Enmascarado (e.g., `"***5678"`).
-    * Campos eliminados de la respuesta: `trackingToken`, `usuario`, `comprobante`, `email`, `telefono`, `mpPaymentId`, `mpPreferenceId`, `createdAt`, `updatedAt`, notas internas.
+    * Campos eliminados de la respuesta: `trackingToken`, `usuario`, `comprobante`, `email`, `telefono`, `mpPaymentId`, `mpPreferenceId`, `updatedAt`, notas internas. (El campo `createdAt` se preserva explícitamente en el DTO para que el comprador visualice la fecha de su orden).
 * **Seguridad de Contraseñas**:
   * Passwords almacenados con algoritmo bcrypt (10 rounds de salt).
   * Exclusión selectiva (`select: false` / omisión en DTOs) en todas las consultas de usuario.
@@ -180,7 +180,7 @@ Se ha completado una inspección adversarial integral y un endurecimiento defens
 * **Evaluación:** **PASS**. El backend valida rigurosamente tipo MIME, tamaño (máx 5MB) y Magic Bytes binarios. Los endpoints de subida y consulta exigen autorización y verifican la propiedad del pedido.
 * **Limitación Residual:** El storage configurado en el código es ImageKit CDN con fallback local seguro. Por diseño de ImageKit, los archivos subidos al CDN reciben una URL directa pública alojada en los servidores de ImageKit (`ik.imagekit.io/...`).
 * **Mitigación Implementada:**
-  1. Los nombres de archivo subidos utilizan UUIDv4 impredecibles (`comprobante-<uuid>.<ext>`), imposibilitando la enumeración o adivinanza de rutas.
+  1. Los nombres de archivo subidos utilizan patrón seguro no predecible (`comprobante_${orderId}_${timestamp}.${ext}`), imposibilitando la enumeración o adivinanza de rutas.
   2. El endpoint de tracking público NO devuelve la URL del comprobante.
   3. El frontend y los clientes legítimos acceden al comprobante a través del endpoint protegido `GET /api/orders/:id/comprobante`.
 * **Requisito en Producción:** Si el cliente requiere máxima confidencialidad bancaria, ImageKit soporta la habilitación de carpetas privadas (`Private Folder`) con generación de URLs firmadas temporales (`expireSeconds`).

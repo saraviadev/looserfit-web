@@ -388,6 +388,19 @@ const getOrderComprobante = async (req, res) => {
         if (!order.comprobante) {
             return res.status(404).json({ mensaje: 'El pedido no tiene ningún comprobante adjunto' });
         }
+
+        // Si se solicita streaming directo a través del backend (proxy seguro)
+        if (req.query.stream === 'true') {
+            const response = await fetch(order.comprobante);
+            if (!response.ok) {
+                return res.status(502).json({ mensaje: 'Error al recuperar archivo desde storage' });
+            }
+            const contentType = response.headers.get('content-type') || 'application/octet-stream';
+            res.setHeader('Content-Type', contentType);
+            const arrayBuffer = await response.arrayBuffer();
+            return res.send(Buffer.from(arrayBuffer));
+        }
+
         res.json({ comprobante: order.comprobante });
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al obtener comprobante', error: error.message });

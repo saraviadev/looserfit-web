@@ -564,7 +564,7 @@ describe('FASE 3 — Mercado Pago, Webhook Idempotente, FSM, Seguridad y Control
             expect(prodACheck.stock).toBe(10);
 
             const orderCheck = await Order.findById(order._id);
-            expect(orderCheck.estado).toBe('Pendiente');
+            expect(orderCheck.estado).toBe('ConflictoStock');
             expect(orderCheck.stockAlert).toMatch(/Stock insuficiente al momento de acreditar el pago/i);
         } finally {
             global.fetch = originalFetch;

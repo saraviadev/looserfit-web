@@ -290,6 +290,7 @@ router.post('/webhook', async (req, res) => {
         if (paymentData.currency_id !== 'ARS') {
             console.error(`[Webhook MP] ❌ Moneda inválida: ${paymentData.currency_id}. Se esperaba ARS.`);
             await Order.findByIdAndUpdate(orderId, {
+                paymentStatus: 'currency_mismatch',
                 stockAlert: `Moneda de pago inválida (${paymentData.currency_id}). Se esperaba ARS.`
             });
             return res.sendStatus(200);
@@ -300,7 +301,8 @@ router.post('/webhook', async (req, res) => {
         if (paymentCents !== orderCents) {
             console.error(`[Webhook MP] ❌ Monto inválido. Pagado: ${paymentData.transaction_amount} vs Orden: ${order.total}`);
             await Order.findByIdAndUpdate(orderId, {
-                stockAlert: `Discrepancia en importe abonado: pagado $${paymentData.transaction_amount} vs total orden $${order.total}`
+                paymentStatus: 'amount_mismatch',
+                stockAlert: `Discrepancia en importe abonado: pagado ${paymentData.transaction_amount} vs total orden ${order.total}`
             });
             return res.sendStatus(200);
         }
@@ -316,8 +318,13 @@ router.post('/webhook', async (req, res) => {
         if (order.mpPaymentId && order.mpPaymentId !== String(paymentId) && ['Pagado', 'Empaquetado', 'Enviado', 'Entregado'].includes(order.estado)) {
             console.warn(`[Webhook MP] ⚠️ ANOMALÍA: Se recibió pago adicional (${paymentId}) para orden ${orderId} que ya tenía el pago ${order.mpPaymentId}`);
             await Order.findByIdAndUpdate(orderId, {
-                stockAlert: `Anomalía de cobro: se recibió un segundo pago (${paymentId}) para este pedido.`
+                stockAlert: `Anomalía de cobro: se recibió un segundo pago (${paymentId}) para este pedido que ya estaba abonado. No se descontó stock adicional. Requiere verificación de reintegro en Mercado Pago.`
             });
+            const { enviarEmailNotificacionAdmin, enviarConReintentos } = require('../config/email');
+            if (enviarEmailNotificacionAdmin && enviarConReintentos) {
+                const alertOrder = await Order.findById(orderId);
+                enviarConReintentos(() => enviarEmailNotificacionAdmin(alertOrder), 3, 'Alerta pago duplicado').catch(console.error);
+            }
             return res.sendStatus(200);
         }
 
@@ -385,11 +392,21 @@ router.post('/webhook', async (req, res) => {
                     if (stockFailure) {
                         console.error(`❌ [Webhook MP] AbortTransaction por stock insuficiente en orden ${orderId}`);
                         await Order.findByIdAndUpdate(orderId, {
-                            stockAlert: 'Stock insuficiente al momento de acreditar el pago',
+                            estado: 'ConflictoStock',
+                            stockAlert: 'CRÍTICO: Stock insuficiente al momento de acreditar el pago (Mercado Pago ID: ' + paymentId + '). Requiere reposición de inventario o reembolso manual vía panel de Mercado Pago.',
+                            paymentProvider: 'mercadopago',
+                            paymentStatus: 'approved_stock_conflict',
                             mpPaymentId: String(paymentId),
                             mpStatus: paymentData.status,
-                            mpStatusDetail: paymentData.status_detail || null
+                            mpStatusDetail: paymentData.status_detail || null,
+                            paymentAmount: paymentData.transaction_amount,
+                            paymentCurrency: paymentData.currency_id
                         });
+                        const { enviarEmailNotificacionAdmin, enviarConReintentos } = require('../config/email');
+                        if (enviarEmailNotificacionAdmin && enviarConReintentos) {
+                            const conflictOrder = await Order.findById(orderId);
+                            enviarConReintentos(() => enviarEmailNotificacionAdmin(conflictOrder), 3, 'Alerta conflicto stock').catch(console.error);
+                        }
                         return res.sendStatus(200);
                     } else {
                         throw txErr;
@@ -409,11 +426,21 @@ router.post('/webhook', async (req, res) => {
                 if (stockFailure) {
                     console.error(`❌ [Webhook MP] Stock insuficiente para pedido ${orderId}`);
                     await Order.findByIdAndUpdate(orderId, {
-                        stockAlert: 'Stock insuficiente al momento de acreditar el pago',
+                        estado: 'ConflictoStock',
+                        stockAlert: 'CRÍTICO: Stock insuficiente al momento de acreditar el pago (Mercado Pago ID: ' + paymentId + '). Requiere reposición de inventario o reembolso manual vía panel de Mercado Pago.',
+                        paymentProvider: 'mercadopago',
+                        paymentStatus: 'approved_stock_conflict',
                         mpPaymentId: String(paymentId),
                         mpStatus: paymentData.status,
-                        mpStatusDetail: paymentData.status_detail || null
+                        mpStatusDetail: paymentData.status_detail || null,
+                        paymentAmount: paymentData.transaction_amount,
+                        paymentCurrency: paymentData.currency_id
                     });
+                    const { enviarEmailNotificacionAdmin, enviarConReintentos } = require('../config/email');
+                    if (enviarEmailNotificacionAdmin && enviarConReintentos) {
+                        const conflictOrder = await Order.findById(orderId);
+                        enviarConReintentos(() => enviarEmailNotificacionAdmin(conflictOrder), 3, 'Alerta conflicto stock').catch(console.error);
+                    }
                     return res.sendStatus(200);
                 }
 
@@ -663,7 +690,8 @@ const VALID_TRANSITIONS = {
     Empaquetado: ['Enviado', 'Cancelado'],
     Enviado: ['Entregado', 'Cancelado'],
     Entregado: [],
-    Cancelado: []
+    Cancelado: [],
+    ConflictoStock: ['Pagado', 'Cancelado']
 };
 
 const updateOrderStatus = async (id, estado) => {
@@ -1185,6 +1213,19 @@ const getOrderComprobante = async (req, res) => {
         if (!order.comprobante) {
             return res.status(404).json({ mensaje: 'El pedido no tiene ningún comprobante adjunto' });
         }
+
+        // Si se solicita streaming directo a través del backend (proxy seguro)
+        if (req.query.stream === 'true') {
+            const response = await fetch(order.comprobante);
+            if (!response.ok) {
+                return res.status(502).json({ mensaje: 'Error al recuperar archivo desde storage' });
+            }
+            const contentType = response.headers.get('content-type') || 'application/octet-stream';
+            res.setHeader('Content-Type', contentType);
+            const arrayBuffer = await response.arrayBuffer();
+            return res.send(Buffer.from(arrayBuffer));
+        }
+
         res.json({ comprobante: order.comprobante });
     } catch (error) {
         res.status(500).json({ mensaje: 'Error al obtener comprobante', error: error.message });
@@ -1415,6 +1456,18 @@ const crearSolicitud = async (data) => {
             error.statusCode = 400;
             throw error;
         }
+
+        // Validación estricta del plazo legal de 10 días corridos (Ley 24.240 Art. 34, Disp. 954/2025 y Disp. 3/2026)
+        const orderDate = matchedOrder.createdAt ? new Date(matchedOrder.createdAt) : null;
+        if (orderDate) {
+            const tenDaysMs = 10 * 24 * 60 * 60 * 1000;
+            const elapsedMs = Date.now() - orderDate.getTime();
+            if (elapsedMs > tenDaysMs) {
+                const error = new Error('El plazo legal de 10 días corridos para ejercer el derecho de arrepentimiento ha expirado.');
+                error.statusCode = 400;
+                throw error;
+            }
+        }
     }
 
     // Resolver marca si aplica
@@ -1576,7 +1629,7 @@ const orderSchema = new mongoose.Schema({
         pisoDepto: { type: String },         // Para domicilio (opcional)
         codigoPostal: { type: String }       // Para domicilio
     },
-    estado: { type: String, default: 'Pendiente' }, // Pendiente, Pagado, Empaquetado, Enviado, Entregado, Cancelado
+    estado: { type: String, default: 'Pendiente' }, // Pendiente, Pagado, Empaquetado, Enviado, Entregado, Cancelado, ConflictoStock
     orderNumber: { type: String, required: true, unique: true, index: true }, // Nro de orden visible para control interno y clientes
     shippingCost: { type: Number, required: true, default: 0 },
     comprobante: { type: String }, // URL de la imagen del comprobante
@@ -1616,37 +1669,50 @@ ARCHIVO: tienda-backend/.env.example
 ================================================================================
 
 ```env
-# Base de datos
+# ==============================================================================
+# LOOSERFIT WEB PLATFORM — SINGLE SOURCE OF TRUTH: VARIABLES DE ENTORNO
+# ==============================================================================
+
+# 1. Configuración de Entorno y Servidor
+NODE_ENV=production
+PORT=10000
+
+# 2. Base de Datos MongoDB Atlas (con TLS/SSL)
 MONGO_URI=mongodb+srv://usuario:password@cluster.mongodb.net/database?retryWrites=true&w=majority
 
-# Autenticación JWT
-JWT_SECRET=tu_secret_key_super_segura
+# 3. Autenticación y Criptografía
+JWT_SECRET=generar_clave_super_segura_de_minimo_64_caracteres_hexadecimales
 
-# Servicio de Emails (Producción: Resend API HTTP / Desarrollo: Gmail SMTP fallback)
-RESEND_API_KEY=re_123456789abcdef_tu_api_key_aqui
-EMAIL_FROM=Looserfit <pedidos@looserfit.com>
-EMAIL_USER=tu_email@gmail.com
-EMAIL_PASS=tu_gmail_app_password
-
-# Frontend URLs para enlaces en correos y CORS
-SITE_FRONTEND_URL=https://www.looserfit.com
-FRONTEND_URL=https://www.looserfit.com
-BACKEND_URL=https://looserfit-api.onrender.com
-
-# Pasarela de Pagos (Mercado Pago)
+# 4. Pasarela de Pagos (Mercado Pago)
 MP_PUBLIC_KEY=APP_USR-tu_public_key_mercadopago
 MP_ACCESS_TOKEN=APP_USR-tu_access_token_mercadopago
 MP_WEBHOOK_SECRET=tu_webhook_secret_mercadopago
 
-# Almacenamiento de Imágenes (ImageKit)
+# 5. Almacenamiento CDN de Imágenes y Comprobantes (ImageKit.io)
 IMAGEKIT_PUBLIC_KEY=tu_public_key_imagekit
 IMAGEKIT_PRIVATE_KEY=tu_private_key_imagekit
 IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/tu_endpoint
 
-# Cloudinary (Legacy / Opcional)
-CLOUDINARY_CLOUD_NAME=tu_cloud_name
-CLOUDINARY_API_KEY=tu_api_key
-CLOUDINARY_API_SECRET=tu_api_secret
+# 6. Servicio de Correos Transaccionales (Resend API HTTP / Fallback SMTP)
+RESEND_API_KEY=re_tu_api_key_de_resend_aqui
+RESEND_FROM_EMAIL=LooserFit <pedidos@looserfit.com>
+# Alias retrocompatibles:
+EMAIL_FROM=LooserFit <pedidos@looserfit.com>
+ADMIN_EMAIL=admin.looserfit@gmail.com
+EMAIL_USER=admin.looserfit@gmail.com
+EMAIL_PASS=tu_gmail_app_password_si_usas_smtp_fallback
+
+# 7. Dominios Multi-Brand y Orígenes CORS
+FRONTEND_URL_FIT=https://www.looserfit.com
+FRONTEND_URL_SPORT=https://sport.looserfit.com
+# Alias retrocompatibles:
+FRONTEND_URL=https://www.looserfit.com
+SITE_FRONTEND_URL=https://www.looserfit.com
+BACKEND_URL=https://looserfit-api.onrender.com
+
+# 8. Variables Frontend (Vercel)
+# VITE_API_BASE_URL=https://looserfit-api.onrender.com
+# VITE_MP_PUBLIC_KEY=APP_USR-tu_public_key_mercadopago
 ```
 
 
@@ -3140,6 +3206,127 @@ describe('SUITE ADVERSARIAL: Pruebas de Estrés, Seguridad y Penetración', () =
             global.fetch = originalFetch;
         });
     });
+
+    describe('6. Casos Límite Financieros, Stock Exhausto y Plazo Legal (F3 / F5 Hardening)', () => {
+        test('ADV-19: Orden de más de 10 días corridos de antigüedad rechaza solicitud de arrepentimiento con 400', async () => {
+            const oldDate = new Date(Date.now() - 15 * 24 * 60 * 60 * 1000); // 15 días atrás
+            await Order.create({
+                brand: brandFit._id,
+                productos: [{
+                    productoId: productFit._id,
+                    nombre: productFit.nombre,
+                    cantidad: 1,
+                    precio: 35000
+                }],
+                total: 42500,
+                tipoEnvio: 'sucursal',
+                datosEnvio: {
+                    nombreCompleto: 'Consumidor Vencido',
+                    email: 'vencido@test.com',
+                    telefono: '1122334455',
+                    provincia: 'Buenos Aires',
+                    localidad: 'La Plata',
+                    direccionSucursal: 'Sucursal 1'
+                },
+                estado: 'Entregado',
+                orderNumber: '#OLD-101',
+                trackingToken: 'token_old_101',
+                shippingCost: 7500,
+                createdAt: oldDate
+            });
+
+            const res = await request(app)
+                .post('/api/arrepentimientos')
+                .send({
+                    customerName: 'Consumidor Vencido',
+                    customerEmail: 'vencido@test.com',
+                    orderNumber: '#OLD-101'
+                });
+
+            expect(res.status).toBe(400);
+            expect(res.body.mensaje).toMatch(/plazo legal de 10 días corridos.*ha expirado/i);
+        });
+
+        test('ADV-20: Pago aprobado por MP con stock agotado transiciona orden a ConflictoStock y flag de alerta', async () => {
+            const zeroStockProduct = await Product.create({
+                nombre: 'Remera Agotada',
+                precio: 20000,
+                stock: 0, // Sin stock disponible
+                publicado: true,
+                categoria: catFit._id,
+                brand: brandFit._id
+            });
+
+            const conflictOrder = await Order.create({
+                brand: brandFit._id,
+                productos: [{
+                    productoId: zeroStockProduct._id,
+                    nombre: zeroStockProduct.nombre,
+                    cantidad: 1,
+                    precio: 20000
+                }],
+                total: 27500,
+                tipoEnvio: 'sucursal',
+                datosEnvio: {
+                    nombreCompleto: 'Cliente Sin Stock',
+                    email: 'sin_stock@test.com',
+                    telefono: '1122334455',
+                    provincia: 'BA',
+                    localidad: 'Quilmes',
+                    direccionSucursal: 'Sucursal 1'
+                },
+                estado: 'Pendiente',
+                orderNumber: '#STOCK-CONFLICT-01',
+                trackingToken: 'token_conflict_01',
+                shippingCost: 7500
+            });
+
+            const paymentId = 999333;
+            const secret = 'webhook_secret_test_key_12345';
+            process.env.MP_WEBHOOK_SECRET = secret;
+            process.env.MP_ACCESS_TOKEN = 'test_token';
+
+            const originalFetch = global.fetch;
+            global.fetch = jest.fn((url) => {
+                if (url.includes(String(paymentId))) {
+                    return Promise.resolve({
+                        ok: true,
+                        status: 200,
+                        text: () => Promise.resolve(''),
+                        json: () => Promise.resolve({
+                            id: 999333,
+                            status: 'approved',
+                            status_detail: 'accredited',
+                            currency_id: 'ARS',
+                            transaction_amount: 27500,
+                            external_reference: String(conflictOrder._id)
+                        })
+                    });
+                }
+                return originalFetch(url);
+            });
+
+            const ts = String(Math.floor(Date.now() / 1000));
+            const manifest = `id:${paymentId};request-id:req-conflict;ts:${ts};`;
+            const v1 = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+
+            const res = await request(app)
+                .post(`/api/payments/webhook?topic=payment&id=${paymentId}`)
+                .set('x-signature', `ts=${ts},v1=${v1}`)
+                .set('x-request-id', 'req-conflict')
+                .send({});
+
+            expect(res.status).toBe(200);
+
+            const updatedOrder = await Order.findById(conflictOrder._id);
+            expect(updatedOrder.estado).toBe('ConflictoStock');
+            expect(updatedOrder.paymentStatus).toBe('approved_stock_conflict');
+            expect(updatedOrder.stockAlert).toMatch(/CRÍTICO: Stock insuficiente al momento de acreditar el pago/i);
+
+            global.fetch = originalFetch;
+        });
+    });
+
 });
 ```
 
