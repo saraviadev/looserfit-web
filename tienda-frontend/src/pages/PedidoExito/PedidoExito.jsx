@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, Link } from 'react-router-dom'
-import { getPedidoById, subirComprobante, registerFromOrder } from '../../services/api'
+import { getPedidoById, getOrderByToken, subirComprobante, registerFromOrder } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
 import './PedidoExito.css'
@@ -32,6 +32,17 @@ export default function PedidoExito() {
 
     const params = new URLSearchParams(location.search)
     const orderId = params.get('external_reference') || params.get('orderId') || params.get('id')
+    const token = params.get('token')
+
+    if (!orderId && token) {
+      getOrderByToken(token)
+        .then(data => {
+          setPedido(data)
+          setComprobanteUrl(data.comprobante || '')
+        })
+        .catch(() => setPedidoNotFound(true))
+      return
+    }
 
     if (!orderId) {
       if (params.get('preview') === 'dev') {

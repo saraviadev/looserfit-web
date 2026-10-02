@@ -896,10 +896,13 @@ function maskStreet(street) {
 
 function toTrackingDTO(order) {
     return {
+        _id: order._id,
         orderNumber: order.orderNumber,
         estado: order.estado,
         tipoEnvio: order.tipoEnvio,
         trackingNumber: order.trackingNumber || null,
+        paymentProvider: order.paymentProvider || null,
+        hasComprobante: Boolean(order.comprobante),
         datosEnvio: {
             nombreCompleto: maskName(order.datosEnvio?.nombreCompleto),
             provincia: order.datosEnvio?.provincia || '',
