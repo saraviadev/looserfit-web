@@ -46,9 +46,16 @@ const orderSchema = new mongoose.Schema({
     trackingToken: { type: String, required: true, unique: true }, // Token para seguimiento público sin login
     trackingNumber: { type: String }, // Número de seguimiento Correo Argentino
     // Campos de Pago / Mercado Pago (Persistencia e Idempotencia F3)
-    metodoPago: { type: String, default: null },
+    metodoPago: { type: String, default: null }, // Retrocompatibilidad
+    paymentProvider: { type: String, default: null }, // 'mercadopago' | 'transferencia'
+    paymentStatus: { type: String, default: null }, // 'approved' | 'pending' | 'rejected' | etc.
+    mpPreferenceId: { type: String, default: null, index: true },
     mpPaymentId: { type: String, default: null, index: true },
     mpStatus: { type: String, default: null },
+    mpStatusDetail: { type: String, default: null },
+    mpExternalReference: { type: String, default: null },
+    paymentAmount: { type: Number, default: null },
+    paymentCurrency: { type: String, default: 'ARS' },
     paymentProcessedAt: { type: Date, default: null },
     stockAlert: { type: String, default: null },
 

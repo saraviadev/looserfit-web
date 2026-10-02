@@ -83,11 +83,19 @@ export async function getPedidos() {
 }
 
 // --- Crear preferencia de pago (Mercado Pago) ---
-export async function crearPreferenciaPago(orderId) {
+export async function crearPreferenciaPago(orderId, guestToken) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...getAuthHeaders()
+  }
+  if (guestToken) {
+    headers['x-guest-token'] = guestToken
+  }
+
   const res = await fetch(`${BASE_URL}/payments/create-preference`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ orderId })
+    headers,
+    body: JSON.stringify({ orderId, guestToken })
   })
   if (!res.ok) {
     let mensaje = 'Error al generar el link de pago'
@@ -426,5 +434,49 @@ export async function restaurarPedidosBulk(ids) {
     body: JSON.stringify({ ids })
   })
   if (!res.ok) throw new Error('No se pudieron restaurar los pedidos')
+  return res.json()
+}
+
+// --- ARREPENTIMIENTO Y DEFENSA DEL CONSUMIDOR (F5) ---
+export async function crearSolicitudArrepentimiento(datos, brandSlug) {
+  const slug = brandSlug || getBrandSlug()
+  const res = await fetch(`${BASE_URL}/arrepentimientos?brand=${slug}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(datos)
+  })
+  if (!res.ok) {
+    let mensaje = 'Error al registrar solicitud de arrepentimiento'
+    try {
+      const d = await res.json()
+      mensaje = d.mensaje || d.error || mensaje
+    } catch { /* ignore */ }
+    throw new Error(mensaje)
+  }
+  return res.json()
+}
+
+export async function getSolicitudesArrepentimiento(filtros = {}) {
+  const params = new URLSearchParams()
+  if (filtros.brand) params.append('brand', filtros.brand)
+  if (filtros.status) params.append('status', filtros.status)
+  const q = params.toString() ? `?${params.toString()}` : ''
+  const res = await fetch(`${BASE_URL}/arrepentimientos/all${q}`, {
+    headers: { ...getAuthHeaders() }
+  })
+  if (!res.ok) throw new Error('Error al obtener solicitudes de arrepentimiento')
+  return res.json()
+}
+
+export async function actualizarEstadoArrepentimiento(id, status, resolutionNotes) {
+  const res = await fetch(`${BASE_URL}/arrepentimientos/${id}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders()
+    },
+    body: JSON.stringify({ status, resolutionNotes })
+  })
+  if (!res.ok) throw new Error('Error al actualizar estado de la solicitud')
   return res.json()
 }

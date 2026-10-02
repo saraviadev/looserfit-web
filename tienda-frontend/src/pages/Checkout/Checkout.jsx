@@ -112,8 +112,8 @@ export default function Checkout() {
       setLoading(true)
       const resp = await crearPedidoConBrand(pedidoData)
       
-      // Creamos la preferencia de Mercado Pago
-      const preference = await crearPreferenciaPago(resp.pedido._id)
+      // Creamos la preferencia de Mercado Pago con validación de ownership
+      const preference = await crearPreferenciaPago(resp.pedido._id, resp.pedido.trackingToken)
       
       // Limpiamos carrito antes de irnos
       clearCart()
