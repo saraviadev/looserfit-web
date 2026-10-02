@@ -7,6 +7,7 @@ const Brand = require('../src/models/Brand');
 const Category = require('../src/models/Category');
 const Product = require('../src/models/product');
 const Order = require('../src/models/Order');
+const { generateTestMpSignature } = require('../src/utils/mpSignature');
 const User = require('../src/models/User');
 
 describe('Fase 1 — Tests de Caracterización y Guarda de Seguridad', () => {
@@ -182,6 +183,8 @@ describe('Fase 1 — Tests de Caracterización y Guarda de Seguridad', () => {
           json: () => Promise.resolve({
             status: 'approved',
             status_detail: 'accredited',
+            currency_id: 'ARS',
+            transaction_amount: order.total,
             external_reference: order._id.toString()
           })
         });
@@ -190,8 +193,15 @@ describe('Fase 1 — Tests de Caracterización y Guarda de Seguridad', () => {
     });
 
     try {
+      const sig = generateTestMpSignature({
+        dataId: '999888',
+        requestId: 'req_char_999888',
+        secret: process.env.MP_WEBHOOK_SECRET
+      });
       const res = await request(app)
         .post('/api/payments/webhook?topic=payment&id=999888')
+        .set('x-signature', sig['x-signature'])
+        .set('x-request-id', sig['x-request-id'])
         .send();
 
       expect(res.status).toBe(200);

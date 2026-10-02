@@ -20,6 +20,7 @@ beforeAll(async () => {
   process.env.NODE_ENV = 'test';
   process.env.JWT_SECRET = 'test_jwt_secret_super_safe_12345';
   process.env.MP_ACCESS_TOKEN = 'test_mp_access_token_dummy';
+  process.env.MP_WEBHOOK_SECRET = 'test_webhook_secret_mp_789xyz';
 
   // Iniciar servidor en memoria primero
   mongoServer = await MongoMemoryServer.create();
