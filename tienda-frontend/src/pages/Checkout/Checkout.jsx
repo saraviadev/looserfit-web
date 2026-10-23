@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useCart } from '../../context/CartContext'
 import { useAuth } from '../../context/AuthContext'
@@ -24,9 +24,13 @@ export default function Checkout() {
   const shippingCost = tipoEnvio === 'domicilio' ? 11000 : 7500
   const totalWithShipping = subtotal + shippingCost
 
+  const checkoutTrackedRef = useRef(false)
+
   useEffect(() => {
-    if (items && items.length > 0) {
-      trackInitiateCheckout(totalWithShipping, items.length)
+    if (!checkoutTrackedRef.current && items && items.length > 0) {
+      checkoutTrackedRef.current = true
+      const totalUnidades = items.reduce((acc, i) => acc + Number(i.cantidad || 1), 0)
+      trackInitiateCheckout(totalWithShipping, totalUnidades)
     }
   }, [items, totalWithShipping])
   const [loading, setLoading] = useState(false)

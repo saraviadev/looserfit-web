@@ -31,12 +31,15 @@ export function initMetaPixel() {
   })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js')
   
   window.fbq('init', META_PIXEL_ID)
-  window.fbq('track', 'PageView')
 }
 
 // Ejecutor seguro (a prueba de adblockers o entornos sin pixel)
 export function trackPixelEvent(eventName, params = {}) {
-  if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+  if (typeof window === 'undefined') return
+  if (!window.fbq && META_PIXEL_ID) {
+    initMetaPixel()
+  }
+  if (typeof window.fbq === 'function') {
     try {
       window.fbq('track', eventName, params)
     } catch {
@@ -51,9 +54,13 @@ export function trackPageView() {
 
 export function trackViewContent(producto) {
   if (!producto) return
+  const categoryName =
+    typeof producto.categoria === 'object'
+      ? producto.categoria?.name
+      : producto.categoria
   trackPixelEvent('ViewContent', {
     content_name: producto.nombre,
-    content_category: producto.categoria || 'Streetwear',
+    content_category: categoryName || 'Streetwear',
     content_ids: [String(producto._id)],
     content_type: 'product',
     value: Number(producto.precioOferta || producto.precio || 0),
@@ -67,7 +74,7 @@ export function trackAddToCart(item) {
     content_name: item.nombre,
     content_ids: [String(item._id || item.productoId)],
     content_type: 'product',
-    value: Number(item.precio || 0),
+    value: Number(item.precioOferta || item.precio || 0),
     currency: 'ARS'
   })
 }
@@ -81,11 +88,31 @@ export function trackInitiateCheckout(total, numItems) {
 }
 
 export function trackPurchase(pedido) {
-  if (!pedido) return
+  if (!pedido || pedido._id === 'sample_dev_id') return
+  const orderKey = String(pedido._id || pedido.orderNumber || '')
+  if (orderKey) {
+    try {
+      const storageKey = `looserfit_pixel_purchased_${orderKey}`
+      if (localStorage.getItem(storageKey)) return
+      localStorage.setItem(storageKey, 'true')
+    } catch {
+      // Ignorar si localStorage está bloqueado
+    }
+  }
+
+  const contentIds = Array.isArray(pedido.productos)
+    ? pedido.productos.map(p => String(p.productoId || p._id || '')).filter(Boolean)
+    : []
+  const numItems = Array.isArray(pedido.productos)
+    ? pedido.productos.reduce((acc, p) => acc + Number(p.cantidad || 1), 0)
+    : 1
+
   trackPixelEvent('Purchase', {
     value: Number(pedido.total || 0),
     currency: 'ARS',
     content_type: 'product',
+    content_ids: contentIds,
+    num_items: numItems,
     order_id: String(pedido.orderNumber || pedido._id || '')
   })
 }

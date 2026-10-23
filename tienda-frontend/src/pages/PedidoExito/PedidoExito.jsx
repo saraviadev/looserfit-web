@@ -29,7 +29,10 @@ export default function PedidoExito() {
   const [regError, setRegError] = useState('')
 
   useEffect(() => {
-    if (pedido) return
+    if (pedido) {
+      trackPurchase(pedido)
+      return
+    }
 
     const params = new URLSearchParams(location.search)
     const orderId = params.get('external_reference') || params.get('orderId') || params.get('id')
@@ -39,8 +42,8 @@ export default function PedidoExito() {
       getOrderByToken(token)
         .then(data => {
           setPedido(data)
-          setComprobanteUrl(data.comprobante || '');
-        trackPurchase(data)
+          setComprobanteUrl(data.comprobante || '')
+          trackPurchase(data)
         })
         .catch(() => setPedidoNotFound(true))
       return
@@ -68,6 +71,7 @@ export default function PedidoExito() {
       .then(data => {
         setPedido(data)
         setComprobanteUrl(data.comprobante || '')
+        trackPurchase(data)
       })
       .catch(() => setPedidoNotFound(true))
   }, [location.search, pedido])
