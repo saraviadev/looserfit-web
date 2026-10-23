@@ -3,7 +3,7 @@
  * Soporta el funnel completo: PageView, ViewContent, AddToCart, InitiateCheckout, Purchase
  */
 
-export const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID || ''
+export const META_PIXEL_ID = import.meta.env.VITE_META_PIXEL_ID || '28830818503220568'
 
 // Inicializar el script oficial de Meta Pixel dinámicamente si se configuró un Pixel ID
 export function initMetaPixel() {
