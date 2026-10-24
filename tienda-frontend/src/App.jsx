@@ -169,7 +169,12 @@ function BrandRoutes({ pathPrefix }) {
   const [homeLoading, setHomeLoading] = useState(true)
   const [authOpen, setAuthOpen] = useState(false)
   const location = useLocation()
+  const isFirstPageView = useRef(true)
   useEffect(() => {
+    if (isFirstPageView.current) {
+      isFirstPageView.current = false
+      return
+    }
     trackPageView()
   }, [location.pathname])
 
